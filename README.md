@@ -1,5 +1,7 @@
 # Magi NFT SDK
 
+**Live demo + docs:** https://token-sdk.okinoko.io
+
 Embeddable NFT + token panels for the Magi network. Same scope as the NFT and token panels in [okinoko-terminal](https://terminal.okinoko.io) — your collections, your balances, transfer / burn / batch-transfer actions — packaged as a drop-in widget for any Hive app, with a headless mode for hosts that build their own UI.
 
 Built for **Hive Keychain**, **Peakd**, **Ecency**, and any app that wants to give users a one-tag NFT inventory + send flow.
