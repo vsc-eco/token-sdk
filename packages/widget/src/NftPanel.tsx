@@ -7,8 +7,10 @@ import {
 	type BroadcastHook,
 	type MagiConfig,
 	type NftClient,
-	type NftItem
+	type NftItem,
+	type NftMetadata
 } from '@vsc.eco/nft-sdk';
+import { Modal } from './components/Modal.js';
 import { NftTransferForm } from './actions/NftTransferForm.js';
 import { NftBurnForm } from './actions/NftBurnForm.js';
 import { NftBatchTransferForm } from './actions/NftBatchTransferForm.js';
@@ -64,6 +66,54 @@ interface CollectionGroup {
 }
 
 /**
+ * Tile-row entry. NFTs minted via mintSeries share a templateId; when 2+
+ * items in a collection share the same templateId we collapse them into
+ * a single template tile that the user can click to expand into a list
+ * of the underlying tokens. Single-item templates and tokens with no
+ * templateId render as regular `item` tiles.
+ */
+type TileEntry =
+	| { kind: 'item'; item: NftItem }
+	| { kind: 'template'; contractId: string; templateId: string; items: NftItem[] };
+
+/**
+ * Group items into tile entries: collapse 2+ tokens that share a
+ * templateId into one template tile, render anything else as an
+ * individual tile.
+ */
+function groupTilesByTemplate(items: NftItem[]): TileEntry[] {
+	const byTemplate = new Map<string, NftItem[]>();
+	const standalones: NftItem[] = [];
+	for (const it of items) {
+		if (it.templateId && it.templateId !== it.tokenId) {
+			const list = byTemplate.get(it.templateId) ?? [];
+			list.push(it);
+			byTemplate.set(it.templateId, list);
+		} else {
+			standalones.push(it);
+		}
+	}
+	const out: TileEntry[] = [];
+	// Standalones first - keeps the header of each collection visually
+	// stable; templates surface as a group below (always more than one).
+	for (const it of standalones) out.push({ kind: 'item', item: it });
+	for (const [templateId, items] of byTemplate.entries()) {
+		if (items.length === 1) {
+			// 1 token from a series - no point hiding it behind a clickthrough.
+			out.push({ kind: 'item', item: items[0] });
+		} else {
+			out.push({
+				kind: 'template',
+				contractId: items[0].contractId,
+				templateId,
+				items
+			});
+		}
+	}
+	return out;
+}
+
+/**
  * The "your NFTs" view. Lists every NFT the connected user holds,
  * grouped by collection, with per-tile transfer/burn actions and a
  * collection-level batch-transfer.
@@ -111,6 +161,21 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 	 * collections.
 	 */
 	const [collectionIcons, setCollectionIcons] = useState<Record<string, string | null>>({});
+	/**
+	 * Template props (image, name) keyed `${contractId}:${templateId}`.
+	 * Populated by a separate effect that fetches the props|<templateId>
+	 * state value for each unique template referenced by the user's items.
+	 * Used to render the template tile's name + image (image falls back to
+	 * the per-template imageUrl resolver if the template has no own image).
+	 */
+	const [templateMeta, setTemplateMeta] = useState<Record<string, NftMetadata>>({});
+	// When a template tile is clicked, store the chosen template here;
+	// rendering the expansion modal is controlled by this ref.
+	const [expandedTemplate, setExpandedTemplate] = useState<{
+		contractId: string;
+		templateId: string;
+		items: NftItem[];
+	} | null>(null);
 
 	// User-typed search value (input contents) and the committed value
 	// driving the lookup. Internal state takes precedence over the
@@ -275,6 +340,44 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 		};
 	}, [items, client, imageUrls]);
 
+	// Fetch the props blob for each unique templateId so we can render the
+	// template tile with the template's actual name (not just the raw
+	// templateId) and its image. Reuses `getTokenProperties` which is
+	// already a public part of the provider.
+	useEffect(() => {
+		if (!items?.length) return;
+		const byContract = new Map<string, Set<string>>();
+		for (const it of items) {
+			if (!it.templateId || it.templateId === it.tokenId) continue;
+			const set = byContract.get(it.contractId) ?? new Set<string>();
+			set.add(it.templateId);
+			byContract.set(it.contractId, set);
+		}
+		if (!byContract.size) return;
+
+		let cancelled = false;
+		for (const [cid, ids] of byContract) {
+			const missing = Array.from(ids).filter(
+				(id) => templateMeta[`${cid}:${id}`] === undefined
+			);
+			if (!missing.length) continue;
+			client.nft.provider
+				.getTokenProperties(cid, missing)
+				.then((map) => {
+					if (cancelled) return;
+					const updates: Record<string, NftMetadata> = {};
+					for (const [k, v] of map.entries()) updates[k] = v;
+					setTemplateMeta((prev) => ({ ...prev, ...updates }));
+				})
+				.catch(() => {
+					/* skip - fall back to templateId as the displayed name */
+				});
+		}
+		return () => {
+			cancelled = true;
+		};
+	}, [items, client, templateMeta]);
+
 	const groups = useMemo<CollectionGroup[]>(() => {
 		if (!items) return [];
 		const byContract = new Map<string, CollectionGroup>();
@@ -400,16 +503,49 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 
 						{isExpanded && (
 							<div className="magi-nft-grid">
-								{g.items.map((it) => (
-									<NftTile
-										key={`${it.contractId}:${it.tokenId}`}
-										item={it}
-										imageUrl={imageUrls[`${it.contractId}:${it.tokenId}`] ?? null}
-										readOnly={readOnly}
-										onTransfer={() => setAction({ kind: 'transfer', item: it })}
-										onBurn={() => setAction({ kind: 'burn', item: it })}
-									/>
-								))}
+								{groupTilesByTemplate(g.items).map((entry) => {
+									if (entry.kind === 'item') {
+										const it = entry.item;
+										return (
+											<NftTile
+												key={`${it.contractId}:${it.tokenId}`}
+												item={it}
+												imageUrl={
+													imageUrls[`${it.contractId}:${it.tokenId}`] ?? null
+												}
+												readOnly={readOnly}
+												onTransfer={() => setAction({ kind: 'transfer', item: it })}
+												onBurn={() => setAction({ kind: 'burn', item: it })}
+											/>
+										);
+									}
+									const meta = templateMeta[`${entry.contractId}:${entry.templateId}`];
+									// The template's image: use the template's own props.image if
+									// we've resolved it, otherwise fall back to the first item's
+									// resolved image (which itself falls back to baseUri+tokenId).
+									const templateImage =
+										extractImageUrl(meta) ??
+										imageUrls[`${entry.contractId}:${entry.items[0].tokenId}`] ??
+										null;
+									return (
+										<TemplateTile
+											key={`tpl:${entry.contractId}:${entry.templateId}`}
+											templateId={entry.templateId}
+											name={
+												(meta?.name as string | undefined) ?? entry.templateId
+											}
+											imageUrl={templateImage}
+											itemCount={entry.items.length}
+											onClick={() =>
+												setExpandedTemplate({
+													contractId: entry.contractId,
+													templateId: entry.templateId,
+													items: entry.items
+												})
+											}
+										/>
+									);
+								})}
 							</div>
 						)}
 					</div>
@@ -445,6 +581,36 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					items={action.items}
 					onSuccess={handleSuccess}
 					onClose={() => setAction(null)}
+				/>
+			)}
+			{expandedTemplate && (
+				<TemplateExpansionModal
+					contractId={expandedTemplate.contractId}
+					templateId={expandedTemplate.templateId}
+					items={expandedTemplate.items}
+					templateName={
+						(templateMeta[
+							`${expandedTemplate.contractId}:${expandedTemplate.templateId}`
+						]?.name as string | undefined) ?? expandedTemplate.templateId
+					}
+					imageUrls={imageUrls}
+					readOnly={readOnly}
+					hasSigner={!!username}
+					onTransfer={(item) => {
+						setExpandedTemplate(null);
+						setAction({ kind: 'transfer', item });
+					}}
+					onBurn={(item) => {
+						setExpandedTemplate(null);
+						setAction({ kind: 'burn', item });
+					}}
+					onBatchTransfer={() => {
+						const cid = expandedTemplate.contractId;
+						const items = expandedTemplate.items;
+						setExpandedTemplate(null);
+						setAction({ kind: 'batch', contractId: cid, items });
+					}}
+					onClose={() => setExpandedTemplate(null)}
 				/>
 			)}
 		</div>
@@ -546,5 +712,194 @@ function BatchIcon() {
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 			<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
 		</svg>
+	);
+}
+
+interface TemplateTileProps {
+	templateId: string;
+	name: string;
+	imageUrl: string | null;
+	itemCount: number;
+	onClick: () => void;
+}
+
+/**
+ * Tile representing a mintSeries template - one click expands into a list
+ * of the underlying tokens. Visually it's a regular NFT tile with a
+ * "stack" badge and a count instead of per-tile actions; the row of
+ * action buttons is intentionally absent because actions belong to the
+ * individual tokens behind it.
+ */
+function TemplateTile({ templateId, name, imageUrl, itemCount, onClick }: TemplateTileProps) {
+	const [imgFailed, setImgFailed] = useState(false);
+	const useFallback = !imageUrl || imgFailed;
+	return (
+		<div
+			className="magi-nft-tile magi-nft-template-tile"
+			onClick={onClick}
+			role="button"
+			tabIndex={0}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					onClick();
+				}
+			}}
+		>
+			<div className={`magi-nft-tile-image ${useFallback ? 'fallback' : ''}`}>
+				{useFallback ? (
+					<img
+						src={magiFallbackSvg}
+						alt={name}
+						className="magi-nft-tile-fallback-img"
+					/>
+				) : (
+					<img src={imageUrl as string} alt={name} onError={() => setImgFailed(true)} />
+				)}
+				{/* Stacked-card affordance to telegraph "this opens a list" */}
+				<span className="magi-nft-template-stack" aria-hidden="true" />
+			</div>
+			<div className="magi-nft-tile-id" title={templateId}>
+				{name}
+			</div>
+			<div className="magi-nft-tile-row">
+				<span className="magi-nft-tile-balance">{itemCount} items</span>
+				<span className="magi-nft-tile-tag">Series</span>
+			</div>
+		</div>
+	);
+}
+
+interface TemplateExpansionModalProps {
+	contractId: string;
+	templateId: string;
+	templateName: string;
+	items: NftItem[];
+	imageUrls: Record<string, string | null>;
+	readOnly: boolean;
+	hasSigner: boolean;
+	onTransfer: (item: NftItem) => void;
+	onBurn: (item: NftItem) => void;
+	onBatchTransfer: () => void;
+	onClose: () => void;
+}
+
+/**
+ * Modal listing every individual token belonging to a template. Each row
+ * shows the token's image, tokenId, balance, and per-token transfer/burn
+ * affordances (suppressed in read-only mode). A header-level "Batch
+ * transfer all" routes to the existing NftBatchTransferForm pre-seeded
+ * with this template's items.
+ */
+function TemplateExpansionModal({
+	contractId,
+	templateName,
+	items,
+	imageUrls,
+	readOnly,
+	hasSigner,
+	onTransfer,
+	onBurn,
+	onBatchTransfer,
+	onClose
+}: TemplateExpansionModalProps) {
+	return (
+		<Modal
+			title={templateName}
+			subtitle={`${items.length} token${items.length === 1 ? '' : 's'} in this series`}
+			onClose={onClose}
+		>
+			{!readOnly && hasSigner && items.length > 1 && (
+				<button
+					type="button"
+					className="magi-nft-submit ghost"
+					onClick={onBatchTransfer}
+				>
+					Batch transfer all in series
+				</button>
+			)}
+			<div
+				style={{
+					display: 'flex',
+					flexDirection: 'column',
+					gap: '0.4rem',
+					maxHeight: '50vh',
+					overflowY: 'auto'
+				}}
+			>
+				{items.map((it) => (
+					<TemplateItemRow
+						key={`${it.contractId}:${it.tokenId}`}
+						item={it}
+						imageUrl={imageUrls[`${contractId}:${it.tokenId}`] ?? null}
+						readOnly={readOnly}
+						onTransfer={() => onTransfer(it)}
+						onBurn={() => onBurn(it)}
+					/>
+				))}
+			</div>
+		</Modal>
+	);
+}
+
+function TemplateItemRow({
+	item,
+	imageUrl,
+	readOnly,
+	onTransfer,
+	onBurn
+}: {
+	item: NftItem;
+	imageUrl: string | null;
+	readOnly: boolean;
+	onTransfer: () => void;
+	onBurn: () => void;
+}) {
+	const [imgFailed, setImgFailed] = useState(false);
+	const useFallback = !imageUrl || imgFailed;
+	return (
+		<div className="magi-nft-template-item">
+			<div className={`magi-nft-template-item-img ${useFallback ? 'fallback' : ''}`}>
+				{useFallback ? (
+					<img src={magiFallbackSvg} alt={item.tokenId} />
+				) : (
+					<img
+						src={imageUrl as string}
+						alt={item.tokenId}
+						onError={() => setImgFailed(true)}
+					/>
+				)}
+			</div>
+			<div className="magi-nft-template-item-info">
+				<span className="magi-nft-template-item-id">{item.tokenId}</span>
+				<span className="magi-nft-template-item-meta">
+					{item.isUnique
+						? 'Unique'
+						: `×${item.balance}${item.maxSupply > 1 ? ` of ${item.maxSupply}` : ''}`}
+					{item.soulbound ? ' · Soulbound' : ''}
+				</span>
+			</div>
+			{!readOnly && (
+				<div className="magi-nft-template-item-actions">
+					<button
+						type="button"
+						className="magi-nft-icon-btn"
+						title="Transfer"
+						disabled={item.soulbound}
+						onClick={onTransfer}
+					>
+						<SendIcon />
+					</button>
+					<button
+						type="button"
+						className="magi-nft-icon-btn danger"
+						title="Burn"
+						onClick={onBurn}
+					>
+						<BurnIcon />
+					</button>
+				</div>
+			)}
+		</div>
 	);
 }
