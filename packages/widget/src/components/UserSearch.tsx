@@ -46,7 +46,7 @@ export function UserSearch({
 			</svg>
 			<input
 				type="text"
-				placeholder="Look up another wallet"
+				placeholder="Look up another wallet (e.g. tibfox)"
 				value={searchInput}
 				onChange={(e) => onChange((e.target as HTMLInputElement).value)}
 				onKeyDown={(e) => {
