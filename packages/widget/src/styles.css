@@ -10,6 +10,11 @@
 .magi-token {
 	/* ==== Default theme: Altera dark ==== */
 	--magi-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+	/* Modal card uses an opaque base so action dialogs sit clearly above
+	 * the panel behind them (the .magi-token-modal overlay is only 55%
+	 * black, so a translucent card was double-bleeding the panel chrome
+	 * into the dialog). */
+	--magi-modal-bg: #1c1f2c;
 	--magi-card-border: rgba(255, 255, 255, 0.15);
 	--magi-card-shadow:
 		0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3),
@@ -687,7 +692,13 @@
 .magi-token-modal-card {
 	width: 100%;
 	max-width: 380px;
-	background: var(--magi-card-bg);
+	/* Opaque base + subtle white highlight on top so the dialog reads
+	 * solid against the panel behind it but still picks up the Altera
+	 * card-vs-dark-bg look. The light theme override collapses the
+	 * highlight to a no-op since --magi-modal-bg is already #ffffff. */
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%),
+		var(--magi-modal-bg);
 	border: 1px solid var(--magi-field-border);
 	border-radius: 1rem;
 	padding: 1.1rem;
