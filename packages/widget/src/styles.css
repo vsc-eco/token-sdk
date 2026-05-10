@@ -89,6 +89,32 @@
 	0%, 100% { box-shadow: 0 0 4px 1px rgba(22, 163, 74, 0.25); }
 	50%      { box-shadow: 0 0 10px 3px rgba(22, 163, 74, 0.55); }
 }
+
+/* ==== Circular progress spinner (deploy "polling indexer" stage) ==== */
+.magi-nft-spinner {
+	width: 28px;
+	height: 28px;
+	border: 3px solid var(--magi-field-border);
+	border-top-color: var(--magi-accent);
+	border-radius: 50%;
+	animation: magi-nft-spin 0.85s linear infinite;
+	flex-shrink: 0;
+}
+@keyframes magi-nft-spin {
+	from { transform: rotate(0deg); }
+	to   { transform: rotate(360deg); }
+}
+.magi-nft-spinner-row {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.4rem 0.5rem;
+	background: var(--magi-accent-light);
+	border: 1px solid var(--magi-field-border);
+	border-radius: 10px;
+	color: var(--magi-text-secondary);
+	font-size: 0.8rem;
+}
 .magi-nft-badge-text {
 	font-size: 0.8rem;
 	font-weight: 700;

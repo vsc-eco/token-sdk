@@ -401,11 +401,32 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 								? 'Contract deployed and initialised.'
 								: 'Deployment failed.';
 
+	// Confirm before closing while a deploy is in flight - the user can
+	// otherwise lose the deploy txid mid-way (signed deploy already
+	// broadcast, init not yet signed) which leaves an orphan contract
+	// they'd have to init separately.
+	const inFlight =
+		stage === 'building' ||
+		stage === 'signing-deploy' ||
+		stage === 'waiting-contract' ||
+		stage === 'signing-init';
+	function handleClose() {
+		if (
+			inFlight &&
+			!window.confirm(
+				'A deploy is still in progress. Closing now may abandon the partially-deployed contract. Close anyway?'
+			)
+		) {
+			return;
+		}
+		onClose();
+	}
+
 	return (
 		<Modal
 			title={`Deploy ${type === 'nft' ? 'NFT collection' : 'token contract'}`}
 			subtitle={subtitle}
-			onClose={onClose}
+			onClose={handleClose}
 		>
 			{!lockType && stage === 'form' && (
 				<div className="magi-nft-tabs" style={{ marginBottom: '0.6rem' }}>
@@ -584,7 +605,7 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 					deployTxId={deployTxId}
 					contractId={contractId}
 					initTxId={initTxId}
-					onDone={onClose}
+					onDone={handleClose}
 				/>
 			)}
 		</Modal>
@@ -649,6 +670,17 @@ function DeployProgress({
 					);
 				})}
 			</div>
+
+			{(stage === 'waiting-contract' || stage === 'building') && (
+				<div className="magi-nft-spinner-row" role="status" aria-live="polite">
+					<span className="magi-nft-spinner" aria-hidden="true" />
+					<span>
+						{stage === 'waiting-contract'
+							? 'Waiting for the indexer to register the new contract id - this can take a minute or two…'
+							: 'Building the contract wasm on the deployer…'}
+					</span>
+				</div>
+			)}
 
 			{logs.length > 0 && <DeployLogPane logs={logs} />}
 

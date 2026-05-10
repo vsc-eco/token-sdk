@@ -304,12 +304,17 @@ export function createDeployerClient(
 	}): Promise<{ contractId: string; name: string }> {
 		const { owner, since, signal } = args;
 		const interval = args.pollIntervalMs ?? 3000;
-		const timeout = args.timeoutMs ?? 90000;
+		// Default 300s - mainnet block-then-indexer turnaround can be 1-2
+		// minutes during pool-of-builds congestion; 90s was too eager.
+		const timeout = args.timeoutMs ?? 300000;
 		const start = Date.now();
 		const ownerHive = owner.startsWith('hive:') ? owner : `hive:${owner}`;
 		const sinceMs = since.getTime();
-		// VSC node's findContract supports filtering by creator. We poll
-		// until a contract whose creation_ts > sinceMs appears.
+		// FindContractFilter only supports byId / byCode / historical /
+		// offset / limit (verified via __type introspection). There's no
+		// byCreator filter, so we pull the most recent contracts via
+		// `historical: true, limit: N` and match client-side. Results
+		// come back newest-first which keeps the per-poll work cheap.
 		const gqlUrls = config?.gqlUrls ?? (config?.gqlUrl ? [config.gqlUrl] : []);
 		if (!gqlUrls.length) {
 			throw new Error(
@@ -318,25 +323,20 @@ export function createDeployerClient(
 		}
 		while (Date.now() - start < timeout) {
 			if (signal?.aborted) throw new Error('findContractAfter: aborted');
-			let lastErr: Error | null = null;
 			for (const url of gqlUrls) {
 				try {
 					const r = await fetch(url, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({
-							query: `query($creator: String!) {
-								findContract(filterOptions: { byCreator: $creator }) {
+							query: `query {
+								findContract(filterOptions: { historical: true, limit: 30 }) {
 									id name creator creation_ts
 								}
-							}`,
-							variables: { creator: ownerHive }
+							}`
 						})
 					});
-					if (!r.ok) {
-						lastErr = new Error(`HTTP ${r.status}`);
-						continue;
-					}
+					if (!r.ok) continue;
 					const json = (await r.json()) as {
 						data?: {
 							findContract?: Array<{
@@ -349,19 +349,18 @@ export function createDeployerClient(
 					};
 					const rows = json.data?.findContract ?? [];
 					for (const row of rows) {
+						if (row.creator !== ownerHive) continue;
 						const ts = new Date(row.creation_ts).getTime();
-						if (ts >= sinceMs) {
+						if (Number.isFinite(ts) && ts >= sinceMs) {
 							return { contractId: row.id, name: row.name };
 						}
 					}
-					lastErr = null;
+					// Successful response from this mirror; no need to try the
+					// other mirrors this round.
 					break;
-				} catch (err) {
-					lastErr = err instanceof Error ? err : new Error(String(err));
+				} catch {
+					// Fall through to the next mirror.
 				}
-			}
-			if (lastErr) {
-				/* all mirrors failed this round - log silently and retry */
 			}
 			await new Promise<void>((resolve, reject) => {
 				const t = setTimeout(resolve, interval);
@@ -376,7 +375,8 @@ export function createDeployerClient(
 			});
 		}
 		throw new Error(
-			`findContractAfter: timed out after ${Math.round(timeout / 1000)}s waiting for contract from ${ownerHive}`
+			`findContractAfter: timed out after ${Math.round(timeout / 1000)}s waiting for contract from ${ownerHive}. ` +
+				'The contract may still appear later - check the explorer for the deploy txid.'
 		);
 	}
 
