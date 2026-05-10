@@ -15,6 +15,7 @@ import { NftTransferForm } from './actions/NftTransferForm.js';
 import { NftBurnForm } from './actions/NftBurnForm.js';
 import { NftBatchTransferForm } from './actions/NftBatchTransferForm.js';
 import { NftMintForm } from './actions/NftMintForm.js';
+import { MagiContractDeploy } from './MagiContractDeploy.js';
 import { UserSearch } from './components/UserSearch.js';
 import magiFallbackSvg from './assets/magi.svg';
 
@@ -51,6 +52,15 @@ export interface MagiNftPanelProps {
 	 * its own search UI driving `viewAccount` from outside.
 	 */
 	enableUserSearch?: boolean;
+	/**
+	 * Render a "Deploy collection" button in the panel header that opens
+	 * `<MagiContractDeploy>` (locked to NFT). Default `true`. Hidden in
+	 * read-only / cross-account view mode (deploy needs a signer for the
+	 * connected user, not for a wallet they're spectating).
+	 */
+	enableDeploy?: boolean;
+	/** Override the deployer service URL. Defaults to `config.deployerUrl`. */
+	deployerUrl?: string;
 }
 
 type ActionState =
@@ -136,8 +146,11 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 		hideHeader,
 		bare,
 		viewAccount,
-		enableUserSearch = true
+		enableUserSearch = true,
+		enableDeploy = true,
+		deployerUrl
 	} = props;
+	const [deployOpen, setDeployOpen] = useState(false);
 
 	const client = useMemo<NftClient>(() => {
 		return providedClient ?? createNftClient({ config, aioha, onBroadcast, keyType });
@@ -426,16 +439,34 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 				</div>
 			)}
 
-			{enableUserSearch && (
-				<UserSearch
-					searchInput={searchInput}
-					onChange={setSearchInput}
-					onSubmit={commitSearch}
-					onClear={clearSearch}
-					readOnly={readOnly}
-					connected={!!username}
-					viewing={readOnly ? account?.replace(/^hive:/, '') ?? null : null}
-				/>
+			{(enableUserSearch || (enableDeploy && !readOnly && username)) && (
+				<div className="magi-nft-toolbar">
+					{enableUserSearch && (
+						<UserSearch
+							searchInput={searchInput}
+							onChange={setSearchInput}
+							onSubmit={commitSearch}
+							onClear={clearSearch}
+							readOnly={readOnly}
+							connected={!!username}
+							viewing={readOnly ? account?.replace(/^hive:/, '') ?? null : null}
+						/>
+					)}
+					{enableDeploy && !readOnly && username && (
+						<button
+							type="button"
+							className="magi-nft-toolbar-action"
+							title="Deploy a new NFT collection"
+							onClick={() => setDeployOpen(true)}
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<line x1="12" y1="5" x2="12" y2="19" />
+								<line x1="5" y1="12" x2="19" y2="12" />
+							</svg>
+							<span>Deploy</span>
+						</button>
+					)}
+				</div>
 			)}
 
 			{!account && <div className="magi-nft-state">Connect your Hive wallet to load NFTs.</div>}
@@ -583,6 +614,23 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					item={action.item}
 					onSuccess={handleSuccess}
 					onClose={() => setAction(null)}
+				/>
+			)}
+			{deployOpen && username && (
+				<MagiContractDeploy
+					aioha={aioha}
+					username={username}
+					onBroadcast={onBroadcast}
+					keyType={keyType}
+					config={config}
+					client={client}
+					serviceUrl={deployerUrl}
+					lockType="nft"
+					onClose={() => setDeployOpen(false)}
+					onSuccess={(r) => {
+						setDeployOpen(false);
+						handleSuccess(r.initTxId);
+					}}
 				/>
 			)}
 			{!readOnly && action?.kind === 'mint' && username && (

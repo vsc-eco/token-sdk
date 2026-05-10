@@ -63,7 +63,7 @@ export const MAINNET_CONFIG: MagiConfig = {
 		'https://api.okinoko.io/api/v1/graphql',
 		'https://magi.milohpr.com/api/v1/graphql'
 	],
-	deployerUrl: 'https://deployer.magi.milohpr.com'
+	deployerUrl: 'https://deploy.okinoko.io'
 };
 
 export const TESTNET_CONFIG: MagiConfig = {
@@ -72,7 +72,8 @@ export const TESTNET_CONFIG: MagiConfig = {
 		'https://indexer.testnet.magi.milohpr.com/v1/graphql',
 		'https://api-testnet.okinoko.io/hasura/v1/graphql'
 	],
-	gqlUrls: ['https://api.testnet.vsc.eco/api/v1/graphql']
+	gqlUrls: ['https://api.testnet.vsc.eco/api/v1/graphql'],
+	deployerUrl: 'https://deploy-testnet.okinoko.io'
 };
 
 /** A contract callable via vsc.call. */

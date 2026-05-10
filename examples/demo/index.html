@@ -7,12 +7,75 @@
 		<style>
 			body {
 				font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-				max-width: 880px;
+				max-width: 1140px;
 				margin: 32px auto;
 				padding: 0 20px 80px;
 				color: #0f172a;
 				background: #f8fafc;
 				line-height: 1.55;
+			}
+			.layout {
+				display: grid;
+				grid-template-columns: 200px 1fr;
+				gap: 36px;
+				align-items: start;
+			}
+			.main {
+				/* Prevent the right column from blowing out the grid when a
+				 * pre/code block is wider than the available track. */
+				min-width: 0;
+			}
+			.toc {
+				position: sticky;
+				top: 24px;
+				font-size: 13px;
+				color: #475569;
+				max-height: calc(100vh - 48px);
+				overflow-y: auto;
+			}
+			.toc-title {
+				font-size: 10.5px;
+				font-weight: 700;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: #94a3b8;
+				margin: 0 0 10px;
+				padding-left: 10px;
+			}
+			.toc ul {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				font-size: 13px;
+			}
+			.toc li {
+				margin: 0;
+			}
+			.toc a {
+				display: block;
+				padding: 5px 10px;
+				border-radius: 6px;
+				color: #475569;
+				text-decoration: none;
+				border-left: 2px solid transparent;
+				transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+			}
+			.toc a:hover {
+				color: #4f46e5;
+				background: rgba(79, 70, 229, 0.06);
+			}
+			.toc a.active {
+				color: #4f46e5;
+				background: rgba(79, 70, 229, 0.08);
+				border-left-color: #4f46e5;
+				font-weight: 600;
+			}
+			/* Anchor jumps land flush with the top of the viewport otherwise -
+			 * push down to clear the visual breathing room above each h2. */
+			h2 { scroll-margin-top: 28px; }
+			@media (max-width: 880px) {
+				.layout { grid-template-columns: 1fr; gap: 0; }
+				.toc { display: none; }
 			}
 			h1 {
 				font-size: 30px;
@@ -293,6 +356,17 @@
 			body[data-theme='dark'] ul { color: #cbd5e1; }
 			body[data-theme='dark'] .intro { color: #9ca3af; }
 			body[data-theme='dark'] code { background: #1e293b; color: #e2e8f0; }
+			body[data-theme='dark'] .toc-title { color: #6b7280; }
+			body[data-theme='dark'] .toc a { color: #9ca3af; }
+			body[data-theme='dark'] .toc a:hover {
+				color: #a5b4fc;
+				background: rgba(99, 102, 241, 0.12);
+			}
+			body[data-theme='dark'] .toc a.active {
+				color: #a5b4fc;
+				background: rgba(99, 102, 241, 0.18);
+				border-left-color: #818cf8;
+			}
 			body[data-theme='dark'] .callout { background: rgba(245, 158, 11, 0.1); color: #fcd34d; }
 			body[data-theme='dark'] .wallet-bar.disconnected {
 				background: linear-gradient(135deg, #1a1d3a 0%, #1e2050 100%);

@@ -19,6 +19,58 @@ import '@vsc.eco/nft-widget/themes/altera-dark.css';
 
 type Theme = 'light' | 'dark';
 
+/**
+ * Sections rendered on the page, in the order they appear. Each entry's
+ * `id` matches the corresponding `<h2 id="...">` so the sticky sidebar
+ * can both jump to and highlight the active section.
+ */
+const SECTIONS: Array<{ id: string; label: string }> = [
+	{ id: 'install', label: 'Installation' },
+	{ id: 'auth', label: 'Auth setup' },
+	{ id: 'assets', label: '<MagiAssets>' },
+	{ id: 'nft-panel', label: '<MagiNftPanel>' },
+	{ id: 'token-panel', label: '<MagiTokenPanel>' },
+	{ id: 'deploy', label: 'Deploy contract' },
+	{ id: 'locked', label: 'Locked mode' },
+	{ id: 'headless-reads', label: 'Headless: reads' },
+	{ id: 'headless-ops', label: 'Headless: ops' },
+	{ id: 'headless-images', label: 'Headless: images' },
+	{ id: 'custom-signer', label: 'Custom signer' },
+	{ id: 'web-component', label: 'Web component' },
+	{ id: 'theming', label: 'Theming' },
+	{ id: 'failover', label: 'Endpoint failover' },
+	{ id: 'proof', label: 'What this demo proves' }
+];
+
+/**
+ * Hook: track which section is currently in view via IntersectionObserver.
+ * Picks the topmost intersecting heading so the sidebar stays in sync as
+ * the user scrolls. Cleans up its observer on unmount.
+ */
+function useActiveSection(ids: readonly string[]): string {
+	const [activeId, setActiveId] = useState<string>(ids[0] ?? '');
+	useEffect(() => {
+		const headings = ids
+			.map((id) => document.getElementById(id))
+			.filter((el): el is HTMLElement => !!el);
+		if (!headings.length) return;
+		// rootMargin biases towards "what the reader is looking at right
+		// now" by ignoring the very top edge and most of the bottom.
+		const obs = new IntersectionObserver(
+			(entries) => {
+				const visible = entries
+					.filter((e) => e.isIntersecting)
+					.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+				if (visible[0]) setActiveId(visible[0].target.id);
+			},
+			{ rootMargin: '-15% 0px -70% 0px', threshold: 0 }
+		);
+		headings.forEach((h) => obs.observe(h));
+		return () => obs.disconnect();
+	}, [ids]);
+	return activeId;
+}
+
 interface ResolvedImage {
 	tokenId: string;
 	templateId: string | null;
@@ -74,9 +126,36 @@ function DemoApp() {
 	const themedClass = theme === 'dark' ? 'magi-nft-altera-host' : '';
 	const connected = !!username;
 	const [deployOpen, setDeployOpen] = useState(false);
+	const sectionIds = useMemo(() => SECTIONS.map((s) => s.id), []);
+	const activeId = useActiveSection(sectionIds);
 
 	return (
-		<>
+		<div className="layout">
+			<aside className="toc">
+				<p className="toc-title">On this page</p>
+				<ul>
+					{SECTIONS.map((s) => (
+						<li key={s.id}>
+							<a
+								href={`#${s.id}`}
+								className={activeId === s.id ? 'active' : ''}
+								onClick={(e) => {
+									// Use smooth scroll programmatically; the default
+									// browser jump feels abrupt in a long doc.
+									e.preventDefault();
+									document
+										.getElementById(s.id)
+										?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+									history.replaceState(null, '', `#${s.id}`);
+								}}
+							>
+								{s.label}
+							</a>
+						</li>
+					))}
+				</ul>
+			</aside>
+			<main className="main">
 			<h1>Magi NFT SDK</h1>
 			<p className="intro">
 				Drop-in NFT + token panels for the Magi network. Implements the
@@ -181,7 +260,7 @@ function DemoApp() {
 
 			{/* ============== Installation ============== */}
 
-			<h2>Installation</h2>
+			<h2 id="install">Installation</h2>
 			<p>
 				Three packages, mirroring{' '}
 				<a
@@ -211,7 +290,7 @@ function DemoApp() {
 
 			{/* ============== Auth setup ============== */}
 
-			<h2>Auth setup</h2>
+			<h2 id="auth">Auth setup</h2>
 			<p>
 				All write operations sign through Aioha - same setup the okinoko-terminal,
 				Altera, and the QuickSwap widget use. Register Keychain, HiveSigner, and
@@ -230,7 +309,7 @@ function DemoApp() {
 
 			{/* ============== Quick start ============== */}
 
-			<h2>
+			<h2 id="assets">
 				Quick start - <code>&lt;MagiAssets&gt;</code>
 			</h2>
 			<p>
@@ -257,7 +336,7 @@ function DemoApp() {
 
 			{/* ============== NFT panel ============== */}
 
-			<h2>
+			<h2 id="nft-panel">
 				<code>&lt;MagiNftPanel&gt;</code>
 			</h2>
 			<p>
@@ -287,7 +366,7 @@ function DemoApp() {
 
 			{/* ============== Token panel ============== */}
 
-			<h2>
+			<h2 id="token-panel">
 				<code>&lt;MagiTokenPanel&gt;</code>
 			</h2>
 			<p>
@@ -314,7 +393,7 @@ function DemoApp() {
 
 			{/* ============== Deploy + init ============== */}
 
-			<h2>
+			<h2 id="deploy">
 				Deploying a new contract - <code>&lt;MagiContractDeploy&gt;</code>
 			</h2>
 			<p>
@@ -374,7 +453,7 @@ function DemoApp() {
 
 			{/* ============== Locked / profile mode ============== */}
 
-			<h2>Locked mode</h2>
+			<h2 id="locked">Locked mode</h2>
 			<p>
 				Profile pages, dashboards, and embeds for a specific community
 				wallet usually want the panel pinned to one account with no search
@@ -404,7 +483,7 @@ function DemoApp() {
 
 			{/* ============== Headless ============== */}
 
-			<h2>Headless SDK - read providers</h2>
+			<h2 id="headless-reads">Headless SDK - read providers</h2>
 			<p>
 				No UI - just data. Every panel above uses these reads internally; pull
 				them directly when you build your own UI (Keychain extension flows,
@@ -414,7 +493,7 @@ function DemoApp() {
 
 			<HeadlessReads username={username} />
 
-			<h2>Headless SDK - building ops without broadcasting</h2>
+			<h2 id="headless-ops">Headless SDK - building ops without broadcasting</h2>
 			<p>
 				Every action method has a sibling <code>*Op</code> method that returns
 				the bundle without broadcasting. Use this when you want the SDK's
@@ -430,7 +509,7 @@ function DemoApp() {
 
 			{/* ============== Image resolver ============== */}
 
-			<h2>Headless SDK - resolving NFT images</h2>
+			<h2 id="headless-images">Headless SDK - resolving NFT images</h2>
 			<p>
 				<code>resolveNftImages(items)</code> mirrors the okinoko-terminal
 				priority chain. One <code>getStateByKeys</code> per contract, batched
@@ -457,7 +536,7 @@ function DemoApp() {
 
 			{/* ============== Web component ============== */}
 
-			<h2>Web component (vanilla JS / Vue / Svelte)</h2>
+			<h2 id="web-component">Web component (vanilla JS / Vue / Svelte)</h2>
 			<p>
 				Three custom elements register on import:{' '}
 				<code>&lt;magi-nft-panel&gt;</code>,{' '}
@@ -472,7 +551,7 @@ function DemoApp() {
 
 			{/* ============== Theming ============== */}
 
-			<h2>Theming</h2>
+			<h2 id="theming">Theming</h2>
 			<p>
 				Both panels expose the same CSS custom properties used by{' '}
 				<code>@vsc.eco/crosschain-widget</code>, so a single host theme block
@@ -486,7 +565,7 @@ function DemoApp() {
 				<Code>{THEMING_SNIPPET}</Code>
 			</pre>
 
-			<h2>Endpoint failover</h2>
+			<h2 id="failover">Endpoint failover</h2>
 			<p>
 				Both <code>indexerHasuraUrls</code> and <code>gqlUrls</code> accept
 				ordered lists. The SDK tries each in turn - HTTP errors, network
@@ -500,7 +579,7 @@ function DemoApp() {
 				<Code>{FAILOVER_SNIPPET}</Code>
 			</pre>
 
-			<h2>What this demo proves</h2>
+			<h2 id="proof">What this demo proves</h2>
 			<ul>
 				<li>Widgets render in plain HTML - zero framework imports beyond React.</li>
 				<li>
@@ -522,7 +601,8 @@ function DemoApp() {
 					assets read-only - no signer, no actions.
 				</li>
 			</ul>
-		</>
+			</main>
+		</div>
 	);
 }
 

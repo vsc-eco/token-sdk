@@ -13,6 +13,7 @@ import {
 import { TokenTransferForm } from './actions/TokenTransferForm.js';
 import { TokenBurnForm } from './actions/TokenBurnForm.js';
 import { TokenMintForm } from './actions/TokenMintForm.js';
+import { MagiContractDeploy } from './MagiContractDeploy.js';
 import { UserSearch } from './components/UserSearch.js';
 
 export interface MagiTokenPanelProps {
@@ -36,6 +37,10 @@ export interface MagiTokenPanelProps {
 	viewAccount?: string;
 	/** Render a built-in search input for looking up another wallet. */
 	enableUserSearch?: boolean;
+	/** Render a "Deploy token" button in the panel header. Default `true`. */
+	enableDeploy?: boolean;
+	/** Override the deployer service URL. Defaults to `config.deployerUrl`. */
+	deployerUrl?: string;
 }
 
 type ActionState =
@@ -64,8 +69,11 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 		hideHeader,
 		bare,
 		viewAccount,
-		enableUserSearch = true
+		enableUserSearch = true,
+		enableDeploy = true,
+		deployerUrl
 	} = props;
+	const [deployOpen, setDeployOpen] = useState(false);
 
 	const client = useMemo<NftClient>(
 		() => providedClient ?? createNftClient({ config, aioha, onBroadcast, keyType }),
@@ -149,16 +157,34 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 				</div>
 			)}
 
-			{enableUserSearch && (
-				<UserSearch
-					searchInput={searchInput}
-					onChange={setSearchInput}
-					onSubmit={commitSearch}
-					onClear={clearSearch}
-					readOnly={readOnly}
-					connected={!!username}
-					viewing={readOnly ? account?.replace(/^hive:/, '') ?? null : null}
-				/>
+			{(enableUserSearch || (enableDeploy && !readOnly && username)) && (
+				<div className="magi-nft-toolbar">
+					{enableUserSearch && (
+						<UserSearch
+							searchInput={searchInput}
+							onChange={setSearchInput}
+							onSubmit={commitSearch}
+							onClear={clearSearch}
+							readOnly={readOnly}
+							connected={!!username}
+							viewing={readOnly ? account?.replace(/^hive:/, '') ?? null : null}
+						/>
+					)}
+					{enableDeploy && !readOnly && username && (
+						<button
+							type="button"
+							className="magi-nft-toolbar-action"
+							title="Deploy a new token contract"
+							onClick={() => setDeployOpen(true)}
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<line x1="12" y1="5" x2="12" y2="19" />
+								<line x1="5" y1="12" x2="19" y2="12" />
+							</svg>
+							<span>Deploy</span>
+						</button>
+					)}
+				</div>
 			)}
 
 			{!account && (
@@ -232,6 +258,23 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 					balance={action.row.balance}
 					onSuccess={handleSuccess}
 					onClose={() => setAction(null)}
+				/>
+			)}
+			{deployOpen && username && (
+				<MagiContractDeploy
+					aioha={aioha}
+					username={username}
+					onBroadcast={onBroadcast}
+					keyType={keyType}
+					config={config}
+					client={client}
+					serviceUrl={deployerUrl}
+					lockType="token"
+					onClose={() => setDeployOpen(false)}
+					onSuccess={(r) => {
+						setDeployOpen(false);
+						handleSuccess(r.initTxId);
+					}}
 				/>
 			)}
 			{!readOnly && action?.kind === 'mint' && username && (

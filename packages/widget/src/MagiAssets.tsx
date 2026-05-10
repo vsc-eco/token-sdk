@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { MagiNftPanel, type MagiNftPanelProps } from './NftPanel.js';
 import { MagiTokenPanel } from './TokenPanel.js';
+import { MagiContractDeploy } from './MagiContractDeploy.js';
 import { UserSearch } from './components/UserSearch.js';
 
 /**
@@ -10,14 +11,18 @@ import { UserSearch } from './components/UserSearch.js';
  * The built-in user search lives at this level (not on each inner panel)
  * so a single lookup applies to both the NFT and Token tab simultaneously.
  * Inner panels are mounted with `enableUserSearch={false}` to suppress
- * their own search inputs.
+ * their own search inputs. Same goes for the deploy button - this
+ * component renders one (with both NFT + Token tabs) and tells the inner
+ * panels to skip their own.
  */
 export function MagiAssets(props: MagiNftPanelProps) {
 	const [tab, setTab] = useState<'nfts' | 'tokens'>('nfts');
 	const enableUserSearch = props.enableUserSearch !== false;
+	const enableDeploy = props.enableDeploy !== false;
 
 	const [searchInput, setSearchInput] = useState('');
 	const [internalView, setInternalView] = useState<string | undefined>(undefined);
+	const [deployOpen, setDeployOpen] = useState(false);
 
 	const { effectiveView, readOnly, displayBare } = useMemo(() => {
 		const bareName = (s?: string) => s?.replace(/^(@|hive:)+/, '').toLowerCase() ?? null;
@@ -48,8 +53,13 @@ export function MagiAssets(props: MagiNftPanelProps) {
 		// We keep `viewAccount` rather than letting each panel re-resolve
 		// it - that way the read-only badges below show the same state.
 		viewAccount: effectiveView,
-		enableUserSearch: false
+		enableUserSearch: false,
+		// MagiAssets owns the deploy affordance for both tabs; suppress
+		// the inner panels' duplicates.
+		enableDeploy: false
 	};
+
+	const showDeployButton = enableDeploy && !readOnly && !!props.username;
 
 	return (
 		<div className={`magi-nft ${props.className ?? ''}`}>
@@ -67,16 +77,34 @@ export function MagiAssets(props: MagiNftPanelProps) {
 				</p>
 			</div>
 
-			{enableUserSearch && (
-				<UserSearch
-					searchInput={searchInput}
-					onChange={setSearchInput}
-					onSubmit={commitSearch}
-					onClear={clearSearch}
-					readOnly={readOnly}
-					connected={!!props.username}
-					viewing={readOnly ? displayBare : null}
-				/>
+			{(enableUserSearch || showDeployButton) && (
+				<div className="magi-nft-toolbar">
+					{enableUserSearch && (
+						<UserSearch
+							searchInput={searchInput}
+							onChange={setSearchInput}
+							onSubmit={commitSearch}
+							onClear={clearSearch}
+							readOnly={readOnly}
+							connected={!!props.username}
+							viewing={readOnly ? displayBare : null}
+						/>
+					)}
+					{showDeployButton && (
+						<button
+							type="button"
+							className="magi-nft-toolbar-action"
+							title="Deploy a new collection or token"
+							onClick={() => setDeployOpen(true)}
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<line x1="12" y1="5" x2="12" y2="19" />
+								<line x1="5" y1="12" x2="19" y2="12" />
+							</svg>
+							<span>Deploy</span>
+						</button>
+					)}
+				</div>
 			)}
 
 			<div className="magi-nft-tabs">
@@ -99,6 +127,21 @@ export function MagiAssets(props: MagiNftPanelProps) {
 				<MagiNftPanel {...innerProps} hideHeader bare className="" />
 			) : (
 				<MagiTokenPanel {...innerProps} hideHeader bare className="" />
+			)}
+
+			{deployOpen && props.username && (
+				<MagiContractDeploy
+					aioha={props.aioha}
+					username={props.username}
+					onBroadcast={props.onBroadcast}
+					keyType={props.keyType}
+					config={props.config}
+					client={props.client}
+					serviceUrl={props.deployerUrl}
+					defaultType={tab === 'tokens' ? 'token' : 'nft'}
+					onClose={() => setDeployOpen(false)}
+					onSuccess={() => setDeployOpen(false)}
+				/>
 			)}
 		</div>
 	);

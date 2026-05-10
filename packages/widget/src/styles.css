@@ -101,6 +101,46 @@
 	margin: 0;
 }
 
+/* ==== Toolbar (search + deploy buttons) ====
+ * The toolbar wraps the user search and any header-level action buttons
+ * (currently just "Deploy") into a single row sitting between the panel
+ * header and the content. Search stretches to fill, action buttons hug
+ * the right edge. Wraps to two rows on narrow viewports. */
+.magi-nft-toolbar {
+	display: flex;
+	align-items: stretch;
+	gap: 0.4rem;
+	margin: 0 0 0.85rem;
+	flex-wrap: wrap;
+}
+.magi-nft-toolbar .magi-nft-search {
+	flex: 1;
+	min-width: 200px;
+	margin: 0;
+}
+.magi-nft-toolbar-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0 0.85rem;
+	border: 1px solid var(--magi-accent);
+	background: var(--magi-accent);
+	color: #ffffff;
+	border-radius: 10px;
+	font-family: var(--magi-font);
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.magi-nft-toolbar-action:hover {
+	background: var(--magi-accent-hover);
+	border-color: var(--magi-accent-hover);
+}
+
 /* ==== User search row ==== */
 .magi-nft-search {
 	display: flex;
