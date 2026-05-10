@@ -13,8 +13,10 @@ export { MagiTokenPanel, type MagiTokenPanelProps } from './TokenPanel.js';
 export { MagiAssets } from './MagiAssets.js';
 export {
 	MagiContractDeploy,
+	DEFAULT_DEPLOY_TEMPLATES,
 	type MagiContractDeployProps,
-	type DeployContractType
+	type DeployContractType,
+	type ContractTemplate
 } from './MagiContractDeploy.js';
 export { NftActionButton, type NftActionButtonProps } from './NftActionButton.js';
 export { NftTransferForm, type NftTransferFormProps } from './actions/NftTransferForm.js';

@@ -8,7 +8,6 @@ import {
 	type BroadcastHook,
 	type DeployLogEntry,
 	type DeployResult,
-	type DeployedCode,
 	type DeployerClient,
 	type DeployerOp,
 	type MagiConfig,
@@ -40,6 +39,46 @@ import { Modal } from './components/Modal.js';
 
 export type DeployContractType = 'nft' | 'token';
 
+/**
+ * Source template the deployer backend can build from. Mirrors the schema
+ * in okinoko-terminal's `github-templates.json`: a `repo` + `branch` pair
+ * tagged by contract type. The deploy widget filters by `tag === type`.
+ */
+export interface ContractTemplate {
+	id: string;
+	label: string;
+	description?: string;
+	repo: string;
+	branch: string;
+	tag: DeployContractType | string;
+}
+
+/**
+ * Default templates - the canonical Magi NFT + token contract sources.
+ * Hosts can override or extend this list via the `templates` prop;
+ * forks of the contracts that build on a different branch / fork can
+ * register their own template entries without needing a deployer
+ * configuration change.
+ */
+export const DEFAULT_DEPLOY_TEMPLATES: ContractTemplate[] = [
+	{
+		id: 'magi-nft',
+		label: 'Magi NFT (ERC-1155)',
+		description: 'Official Magi NFT contract from vsc-eco/magi_nft-contract.',
+		repo: 'vsc-eco/magi_nft-contract',
+		branch: 'main',
+		tag: 'nft'
+	},
+	{
+		id: 'magi-token',
+		label: 'Magi Token (ERC-20)',
+		description: 'Official Magi token contract from vsc-eco/magi_token-contract.',
+		repo: 'vsc-eco/magi_token-contract',
+		branch: 'main',
+		tag: 'token'
+	}
+];
+
 export interface MagiContractDeployProps {
 	username?: string;
 	aioha?: AiohaLike;
@@ -53,6 +92,14 @@ export interface MagiContractDeployProps {
 	defaultType?: DeployContractType;
 	/** Lock the form to a single contract type and hide the tab strip. */
 	lockType?: DeployContractType;
+	/**
+	 * Override the source-template list. Each entry is a `{ repo, branch,
+	 * tag }` triple the deployer backend will clone + build. Defaults to
+	 * `DEFAULT_DEPLOY_TEMPLATES` (the canonical magi_nft-contract /
+	 * magi_token-contract repos). Pass an extended list to offer custom
+	 * forks alongside the defaults.
+	 */
+	templates?: ContractTemplate[];
 	/** Called when the dialog is closed. */
 	onClose: () => void;
 	/** Called once everything succeeded — before the user dismisses. */
@@ -98,10 +145,12 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		serviceUrl,
 		defaultType = 'nft',
 		lockType,
+		templates: providedTemplates,
 		onClose,
 		onSuccess,
 		className
 	} = props;
+	const templates = providedTemplates ?? DEFAULT_DEPLOY_TEMPLATES;
 
 	const client = useMemo<NftClient>(
 		() => providedClient ?? createNftClient({ config, aioha, onBroadcast, keyType }),
@@ -135,23 +184,22 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		maxSupply: ''
 	});
 
-	// Templates the deployer offers for the active tag. Loaded lazily.
-	const [templates, setTemplates] = useState<DeployedCode[] | null>(null);
+	// Templates available for the active tag. okinoko-terminal ships these
+	// as a static config (github-templates.json) - the deployer's
+	// /api/deployed-codes endpoint returns on-chain code hashes, not
+	// build sources, so it can't be used here.
+	const availableTemplates = useMemo(
+		() => templates.filter((t) => t.tag === type),
+		[templates, type]
+	);
+	const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 	useEffect(() => {
-		let cancelled = false;
-		setTemplates(null);
-		deployer
-			.listDeployedCodes({ tag: type })
-			.then((rows) => {
-				if (!cancelled) setTemplates(rows);
-			})
-			.catch(() => {
-				if (!cancelled) setTemplates([]);
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [deployer, type]);
+		// When the user flips the type tab, reset the dropdown to the
+		// first template of that tag (or empty if there isn't one).
+		setSelectedTemplateId(availableTemplates[0]?.id ?? '');
+	}, [availableTemplates]);
+	const selectedTemplate =
+		availableTemplates.find((t) => t.id === selectedTemplateId) ?? availableTemplates[0];
 
 	const subscribeRef = useRef<(() => void) | null>(null);
 	useEffect(() => () => subscribeRef.current?.(), []);
@@ -204,22 +252,27 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		setContractId(null);
 		setInitTxId(null);
 
-		const repo =
-			type === 'nft' ? 'vsc-eco/magi_nft-contract' : 'vsc-eco/magi_token-contract';
+		if (!selectedTemplate) {
+			setStage('error');
+			setError(
+				`No ${type} template configured. Pass \`templates\` prop to provide one.`
+			);
+			return;
+		}
 		const fullName = fields.name.trim();
 		const startedAt = new Date();
 
 		appendLog({
 			level: 'INFO',
 			timestamp: startedAt.toISOString(),
-			message: `Preparing deploy from ${repo} (tag=${type})…`
+			message: `Preparing deploy from ${selectedTemplate.repo}@${selectedTemplate.branch} (tag=${type})…`
 		});
 
 		let deploymentId: string;
 		try {
 			const r = await deployer.prepareDeploy({
-				repo,
-				branch: 'main',
+				repo: selectedTemplate.repo,
+				branch: selectedTemplate.branch,
 				name: fullName,
 				owner: username,
 				tag: type
@@ -469,11 +522,44 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 						</>
 					)}
 
-					{templates && templates.length === 0 && (
+					{availableTemplates.length > 1 && (
+						<Field
+							label="Source template"
+							hint="Built by the deployer backend. Override via the `templates` prop."
+						>
+							<select
+								className="magi-nft-input-wrap"
+								style={{ padding: '0.55rem 0.7rem', fontSize: '0.85rem' }}
+								value={selectedTemplate?.id ?? ''}
+								onChange={(e) => setSelectedTemplateId(e.currentTarget.value)}
+							>
+								{availableTemplates.map((t) => (
+									<option key={t.id} value={t.id}>
+										{t.label}
+									</option>
+								))}
+							</select>
+						</Field>
+					)}
+					{availableTemplates.length === 0 && (
 						<p className="magi-nft-status error">
-							No <code>{type}</code> templates available on the deployer at{' '}
-							<code>{serviceUrl ?? config.deployerUrl}</code>. Configure a different
-							endpoint via the <code>serviceUrl</code> prop.
+							No <code>{type}</code> source template configured. Pass a{' '}
+							<code>templates</code> prop with a matching <code>tag</code> to
+							offer one.
+						</p>
+					)}
+					{availableTemplates.length === 1 && (
+						<p
+							style={{
+								fontSize: '0.7rem',
+								color: 'var(--magi-text-muted)',
+								margin: '0.2rem 0'
+							}}
+						>
+							Building from{' '}
+							<code>
+								{selectedTemplate?.repo}@{selectedTemplate?.branch}
+							</code>
 						</p>
 					)}
 					{validation.err && (
@@ -482,7 +568,7 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 					<button
 						type="button"
 						className="magi-nft-submit"
-						disabled={!validation.ok || (templates !== null && templates.length === 0)}
+						disabled={!validation.ok || availableTemplates.length === 0}
 						onClick={handleDeploy}
 					>
 						Deploy {type === 'nft' ? 'collection' : 'token'}
