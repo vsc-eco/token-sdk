@@ -71,7 +71,9 @@ export type {
 	NftMetadata,
 	TokenInfo,
 	TokenBalance,
-	CustomJsonOp
+	CustomJsonOp,
+	NftOpBundle,
+	TokenOpBundle
 } from '@vsc.eco/nft-core';
 export {
 	extractImageUrl,
