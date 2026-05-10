@@ -104,6 +104,14 @@ export type { TokenProvider } from './tokenProvider.js';
  * `signAndBroadcastTx` otherwise. Callers can also bypass the client and
  * sign manually with the `op` returned by any `build*` function.
  */
+/**
+ * Tiny Promise-based sleep used by `broadcastBatch` to space chunks
+ * across Hive blocks. Kept dependency-free.
+ */
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+}
+
 export interface AiohaLike {
 	vscCallContract?(
 		contractId: string,
@@ -256,17 +264,21 @@ export interface NftClient {
 	/** Direct broadcast of any NFT or token bundle. */
 	broadcast(bundle: NftOpBundle | TokenOpBundle): Promise<BroadcastResult>;
 	/**
-	 * Broadcast multiple bundles. When the host's signer supports
-	 * `signAndBroadcastTx` (Aioha does), bundles are grouped into
-	 * `chunkSize`-sized Hive transactions so the user signs
-	 * `ceil(N / chunkSize)` times - Keychain / HiveSigner and the L1
-	 * node itself cap the ops per tx, so dumping 50+ ops into a single
-	 * transaction will be rejected. When the signer can't bundle (only
-	 * an `onBroadcast` hook), each bundle is broadcast individually.
+	 * Broadcast multiple bundles, working around two Hive L1 limits:
 	 *
-	 * Returns one txId per chunk (or per bundle in sequential mode),
-	 * plus a per-chunk progress callback so callers can render
-	 * "Signing 2/4…".
+	 *   1. Per-tx op count - Keychain / HiveSigner cap how many ops can
+	 *      be bundled into a single signed transaction. We chunk into
+	 *      `chunkSize`-sized signatures so this never overflows.
+	 *   2. Per-block custom_json count - Hive caps an account at ~5
+	 *      `custom_json` ops per block. Sending two consecutive chunks
+	 *      faster than block production lands them in the same block
+	 *      and the second one trips the cap. We sleep
+	 *      `delayBetweenChunksMs` between chunks so each lands in a
+	 *      fresh block.
+	 *
+	 * The bundled path is used when the signer supports
+	 * `signAndBroadcastTx` (Aioha). When only an `onBroadcast` hook is
+	 * configured, each bundle is broadcast individually.
 	 */
 	broadcastBatch(
 		bundles: Array<NftOpBundle | TokenOpBundle>,
@@ -279,13 +291,31 @@ export interface NftClient {
 			sequential?: boolean;
 			/**
 			 * Number of ops to bundle into a single Hive transaction.
-			 * Default 10 - well below the Keychain / Aioha provider caps
-			 * but high enough that a typical 50-recipient airdrop becomes
-			 * 5 signatures rather than 50.
+			 * Default 4 - one under Hive's per-block custom_json cap so
+			 * any unrelated custom_json from a parallel tab still has
+			 * room without blowing the limit.
 			 */
 			chunkSize?: number;
+			/**
+			 * Sleep between chunks so consecutive signatures land in
+			 * different blocks. Default 4000ms (Hive blocks are 3s; the
+			 * extra 1s buffer covers clock skew + propagation). Set 0
+			 * to disable when the host already throttles.
+			 */
+			delayBetweenChunksMs?: number;
 			/** Called once per chunk (or per bundle in sequential mode). */
 			onProgress?: (i: number, total: number, txId: string) => void;
+			/**
+			 * Called repeatedly during the inter-chunk wait so the host
+			 * can render a countdown ("Waiting for next block - 2.4s").
+			 * Receives the chunk index that's *about* to fire and the
+			 * milliseconds still to wait.
+			 */
+			onWaiting?: (
+				nextChunkIndex: number,
+				totalChunks: number,
+				remainingMs: number
+			) => void;
 		}
 	): Promise<{
 		/** One txId per signed chunk (or per bundle when sequential). */
@@ -351,7 +381,13 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 		opts: {
 			sequential?: boolean;
 			chunkSize?: number;
+			delayBetweenChunksMs?: number;
 			onProgress?: (i: number, total: number, txId: string) => void;
+			onWaiting?: (
+				nextChunkIndex: number,
+				totalChunks: number,
+				remainingMs: number
+			) => void;
 		} = {}
 	): Promise<{
 		txIds: string[];
@@ -360,13 +396,14 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 		if (bundles.length === 0) {
 			return { txIds: [], bundles };
 		}
-		const chunkSize = Math.max(1, Math.floor(opts.chunkSize ?? 10));
-		// Bundled path: group ops into chunks small enough to clear the
-		// Keychain / Aioha-provider caps and the L1 node's per-tx
-		// op-count limit, then sign each chunk separately. We use this
-		// path whenever (a) the caller didn't force sequential AND (b)
-		// the signer surfaces signAndBroadcastTx (Aioha does, custom
-		// onBroadcast hooks don't).
+		const chunkSize = Math.max(1, Math.floor(opts.chunkSize ?? 4));
+		const delayMs = Math.max(0, Math.floor(opts.delayBetweenChunksMs ?? 4000));
+		// Bundled path: group ops into small chunks (under Hive's per-
+		// block custom_json cap) and sign each separately, sleeping a
+		// block between them so consecutive chunks don't pile into the
+		// same block. Used when (a) the caller didn't force sequential
+		// and (b) the signer surfaces signAndBroadcastTx (Aioha does,
+		// custom onBroadcast hooks don't).
 		const canBundle =
 			!opts.sequential &&
 			!onBroadcast &&
@@ -376,6 +413,20 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 			const txIds: string[] = [];
 			const totalChunks = Math.ceil(bundles.length / chunkSize);
 			for (let i = 0; i < bundles.length; i += chunkSize) {
+				const chunkIndex = Math.floor(i / chunkSize);
+				// Wait between chunks so the next signature lands in a
+				// fresh Hive block. The first chunk fires immediately.
+				if (chunkIndex > 0 && delayMs > 0) {
+					const waitStart = Date.now();
+					// Tick every 200ms so a host-rendered countdown
+					// updates smoothly without spamming setState.
+					while (Date.now() - waitStart < delayMs) {
+						const remaining = delayMs - (Date.now() - waitStart);
+						opts.onWaiting?.(chunkIndex, totalChunks, Math.max(0, remaining));
+						await sleep(Math.min(200, remaining));
+					}
+					opts.onWaiting?.(chunkIndex, totalChunks, 0);
+				}
 				const chunk = bundles.slice(i, i + chunkSize);
 				const ops = chunk.map((b) => b.op as unknown);
 				const res = await aioha!.signAndBroadcastTx!(ops, keyType);
@@ -383,7 +434,7 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 					// Stop on first failure - the caller surfaces the
 					// txIds we did get and lets the user retry the rest.
 					throw new Error(
-						`signAndBroadcastTx failed on chunk ${Math.floor(i / chunkSize) + 1}/${totalChunks}: ${res.error ?? 'unknown'}`
+						`signAndBroadcastTx failed on chunk ${chunkIndex + 1}/${totalChunks}: ${res.error ?? 'unknown'}`
 					);
 				}
 				txIds.push(res.result);
@@ -392,9 +443,20 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 			return { txIds, bundles };
 		}
 		// Sequential fallback - one tx per bundle. Same partial-success
-		// semantics: stop on first error, surface what we have.
+		// semantics: stop on first error, surface what we have. Same
+		// inter-chunk delay applied here too since each "chunk" is one
+		// custom_json that could otherwise pile up in a block.
 		const txIds: string[] = [];
 		for (let i = 0; i < bundles.length; i++) {
+			if (i > 0 && delayMs > 0) {
+				const waitStart = Date.now();
+				while (Date.now() - waitStart < delayMs) {
+					const remaining = delayMs - (Date.now() - waitStart);
+					opts.onWaiting?.(i, bundles.length, Math.max(0, remaining));
+					await sleep(Math.min(200, remaining));
+				}
+				opts.onWaiting?.(i, bundles.length, 0);
+			}
 			const r = await broadcast(bundles[i]);
 			txIds.push(r.txId);
 			opts.onProgress?.(i, bundles.length, r.txId);

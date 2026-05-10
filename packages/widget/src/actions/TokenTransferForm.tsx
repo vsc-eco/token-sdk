@@ -22,11 +22,14 @@ export interface TokenTransferFormProps {
 type Mode = 'single' | 'distribute';
 
 /**
- * Recipients per signed chunk. Has to clear Keychain + Aioha-provider
- * limits AND the L1 node's per-tx op-count cap; 10 fits well under all
- * three. Mirrored as the default in `client.broadcastBatch`.
+ * Recipients per signed chunk. Hive caps an account at ~5 custom_json
+ * ops per block, so 4 leaves headroom for any unrelated custom_json
+ * fired in parallel (e.g. another tab, a vote, a reblog) without
+ * tripping the limit. Matches the SDK's broadcastBatch default.
  */
-const CHUNK_SIZE = 10;
+const CHUNK_SIZE = 4;
+/** Seconds we wait between chunks so each lands in a fresh block. */
+const CHUNK_DELAY_MS = 4000;
 
 /**
  * Parse a free-form recipient list (any of `tibfox`, `@tibfox`,
@@ -67,7 +70,11 @@ export function TokenTransferForm({
 	// Single tx id for the send mode + bundled distribute path; or
 	// progress info ("3 of 10 …") for the sequential fallback.
 	const [txIds, setTxIds] = useState<string[]>([]);
-	const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+	const [progress, setProgress] = useState<
+		| { phase: 'signing'; done: number; total: number }
+		| { phase: 'waiting'; nextChunk: number; total: number; remainingMs: number }
+		| null
+	>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	const parsedRaw = useMemo(() => {
@@ -160,16 +167,27 @@ export function TokenTransferForm({
 		const bundles: TokenOpBundle[] = recipients.map((to) =>
 			client.token.transferOp(info.contractId, username, { to, amount })
 		);
-		// Chunk into CHUNK_SIZE-sized signatures - Hive caps per-tx op
-		// counts and Keychain rejects oversized custom_json batches, so
-		// 50 recipients become 5 sequential signatures rather than one
-		// rejected mega-tx. SDK falls back to per-bundle sequential
-		// when an onBroadcast hook is in play.
+		// Chunk into CHUNK_SIZE-sized signatures and wait CHUNK_DELAY_MS
+		// between them - Hive caps an account at 5 custom_json ops per
+		// block, so two consecutive 4-op chunks would land in one block
+		// and the second would trip "Account already submitted N
+		// custom json operation(s) this block." The SDK handles the
+		// chunking and the inter-chunk delay; we just plumb its
+		// onProgress / onWaiting callbacks into the visible progress.
 		const chunks = Math.ceil(bundles.length / CHUNK_SIZE);
-		setProgress({ done: 0, total: chunks });
+		setProgress({ phase: 'signing', done: 0, total: chunks });
 		const res = await client.broadcastBatch(bundles, {
 			chunkSize: CHUNK_SIZE,
-			onProgress: (i) => setProgress({ done: i + 1, total: chunks })
+			delayBetweenChunksMs: CHUNK_DELAY_MS,
+			onProgress: (i) =>
+				setProgress({ phase: 'signing', done: i + 1, total: chunks }),
+			onWaiting: (next, total, remainingMs) =>
+				setProgress({
+					phase: 'waiting',
+					nextChunk: next + 1,
+					total,
+					remainingMs
+				})
 		});
 		setTxIds(res.txIds);
 		setProgress(null);
@@ -195,7 +213,13 @@ export function TokenTransferForm({
 
 	const submitLabel = (() => {
 		if (submitting) {
-			if (progress) return `Signing batch ${progress.done}/${progress.total}…`;
+			if (progress?.phase === 'signing') {
+				return `Signing batch ${progress.done}/${progress.total}…`;
+			}
+			if (progress?.phase === 'waiting') {
+				const secs = Math.max(1, Math.ceil(progress.remainingMs / 1000));
+				return `Waiting for next block (${secs}s) before batch ${progress.nextChunk}/${progress.total}…`;
+			}
 			return mode === 'distribute' ? 'Distributing…' : 'Sending…';
 		}
 		if (mode === 'distribute') {
@@ -297,7 +321,9 @@ export function TokenTransferForm({
 						? `Will sign 1 transaction with ${recipients.length} transfer${recipients.length === 1 ? '' : 's'}.`
 						: `Will sign ${distributeChunks} transactions (${CHUNK_SIZE} transfers each, last one ${
 								recipients.length % CHUNK_SIZE || CHUNK_SIZE
-							}).`}
+							}). Pauses ~${Math.round(CHUNK_DELAY_MS / 1000)}s between batches so each lands in a fresh Hive block - total ~${
+								Math.round(((distributeChunks - 1) * CHUNK_DELAY_MS) / 1000)
+							}s of waits plus one signature each.`}
 				</p>
 			)}
 
