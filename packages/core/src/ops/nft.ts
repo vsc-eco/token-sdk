@@ -44,14 +44,25 @@ export interface NftInitParams {
 	symbol: string;
 	baseUri?: string;
 	trackMinted?: boolean;
+	/**
+	 * Pre-stringified `collection_metadata` blob written to contract
+	 * state. Convention from okinoko-terminal: `{ description, icon }`
+	 * for the simple case, free-form JSON otherwise. Read back by the
+	 * indexer / panel via `getStateByKeys(['collection_metadata'])`.
+	 */
+	metadata?: string;
 }
 export function buildNftInit(ctx: NftOpContext, p: NftInitParams): NftOpBundle {
-	return bundle(ctx, 'init', {
+	const payload: Record<string, unknown> = {
 		name: p.name,
 		symbol: p.symbol,
 		baseUri: p.baseUri ?? '',
 		trackMinted: p.trackMinted ?? false
-	});
+	};
+	if (p.metadata !== undefined && p.metadata.trim() !== '') {
+		payload.metadata = p.metadata;
+	}
+	return bundle(ctx, 'init', payload);
 }
 
 /** Mint a single token id (in `amount` copies). Contract owner only. */

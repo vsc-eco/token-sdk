@@ -126,6 +126,8 @@ interface NftInitFields {
 	symbol: string;
 	baseUri: string;
 	trackMinted: boolean;
+	description: string;
+	iconUrl: string;
 }
 interface TokenInitFields {
 	name: string;
@@ -175,7 +177,9 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		name: '',
 		symbol: '',
 		baseUri: '',
-		trackMinted: false
+		trackMinted: false,
+		description: '',
+		iconUrl: ''
 	});
 	const [tokenFields, setTokenFields] = useState<TokenInitFields>({
 		name: '',
@@ -210,13 +214,32 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		if (!username) return { ok: false, err: 'Connect a wallet first.' };
 		if (!fields.name.trim()) return { ok: false, err: 'Name is required.' };
 		if (!fields.symbol.trim()) return { ok: false, err: 'Symbol is required.' };
+		if (type === 'nft') {
+			// Match okinoko's NftInitPopup: baseUri must end with `/` so
+			// per-token URIs concatenate cleanly. Empty is allowed.
+			const b = nftFields.baseUri.trim();
+			if (b && !b.endsWith('/'))
+				return { ok: false, err: 'Base URI must end with a trailing slash (`/`).' };
+		}
 		if (type === 'token') {
 			const dec = parseInt(tokenFields.decimals, 10);
 			if (!Number.isFinite(dec) || dec < 0 || dec > 18)
 				return { ok: false, err: 'Decimals must be between 0 and 18.' };
 		}
 		return { ok: true, err: null as string | null };
-	}, [username, fields, type, tokenFields.decimals]);
+	}, [username, fields, type, tokenFields.decimals, nftFields.baseUri]);
+
+	/**
+	 * Build the okinoko-shaped collection_metadata JSON from the simple
+	 * description + icon fields. Returns `undefined` when both are
+	 * empty so we don't write an empty object into contract state.
+	 */
+	function buildNftMetadata(f: NftInitFields): string | undefined {
+		const meta: Record<string, string> = {};
+		if (f.description.trim()) meta.description = f.description.trim();
+		if (f.iconUrl.trim()) meta.icon = f.iconUrl.trim();
+		return Object.keys(meta).length > 0 ? JSON.stringify(meta) : undefined;
+	}
 
 	function appendLog(entry: DeployLogEntry) {
 		setLogs((prev) => [...prev, entry]);
@@ -367,7 +390,8 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 						name: nftFields.name,
 						symbol: nftFields.symbol,
 						baseUri: nftFields.baseUri || undefined,
-						trackMinted: nftFields.trackMinted
+						trackMinted: nftFields.trackMinted,
+						metadata: buildNftMetadata(nftFields)
 					})
 				: client.token.initOp(found.contractId, username!, {
 						name: tokenFields.name,
@@ -507,6 +531,23 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 								/>
 								Track total minted (enables the totalMinted query)
 							</label>
+							<Field label="Description" hint="Short description of the collection. Stored in collection_metadata.">
+								<TextInput
+									value={nftFields.description}
+									onChange={(v) => setNftFields((p) => ({ ...p, description: v }))}
+									placeholder="A series of generative art pieces"
+								/>
+							</Field>
+							<Field
+								label="Collection icon URL"
+								hint="Image shown next to the collection name in widgets. Stored in collection_metadata.icon."
+							>
+								<TextInput
+									value={nftFields.iconUrl}
+									onChange={(v) => setNftFields((p) => ({ ...p, iconUrl: v }))}
+									placeholder="https://example.com/cover.png"
+								/>
+							</Field>
 						</>
 					) : (
 						<>

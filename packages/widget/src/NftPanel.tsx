@@ -15,6 +15,7 @@ import { Modal } from './components/Modal.js';
 import { NftTransferForm } from './actions/NftTransferForm.js';
 import { NftBurnForm } from './actions/NftBurnForm.js';
 import { NftBatchTransferForm } from './actions/NftBatchTransferForm.js';
+import { NftEditCollectionForm } from './actions/NftEditCollectionForm.js';
 import { NftMintForm } from './actions/NftMintForm.js';
 import { MagiContractDeploy } from './MagiContractDeploy.js';
 import { UserSearch } from './components/UserSearch.js';
@@ -85,6 +86,7 @@ type ActionState =
 	| { kind: 'burn'; item: NftItem }
 	| { kind: 'batch'; contractId: string; items: NftItem[] }
 	| { kind: 'mint'; collection: NftItem['collection'] }
+	| { kind: 'edit'; collection: NftItem['collection'] }
 	| null;
 
 interface CollectionGroup {
@@ -636,17 +638,30 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 								</button>
 							)}
 							{!readOnly && isOwnedCollection(g, username) && (
-								<button
-									type="button"
-									className="magi-nft-icon-btn"
-									title="Mint into this collection"
-									onClick={(e) => {
-										e.stopPropagation();
-										setAction({ kind: 'mint', collection: g.collection });
-									}}
-								>
-									<MintIcon />
-								</button>
+								<>
+									<button
+										type="button"
+										className="magi-nft-icon-btn"
+										title="Edit collection (baseUri, description, icon, owner)"
+										onClick={(e) => {
+											e.stopPropagation();
+											setAction({ kind: 'edit', collection: g.collection });
+										}}
+									>
+										<EditIcon />
+									</button>
+									<button
+										type="button"
+										className="magi-nft-icon-btn"
+										title="Mint into this collection"
+										onClick={(e) => {
+											e.stopPropagation();
+											setAction({ kind: 'mint', collection: g.collection });
+										}}
+									>
+										<MintIcon />
+									</button>
+								</>
 							)}
 						</div>
 
@@ -748,6 +763,20 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					username={username}
 					collection={action.collection}
 					onSuccess={handleSuccess}
+					onClose={() => setAction(null)}
+				/>
+			)}
+			{!readOnly && action?.kind === 'edit' && username && (
+				<NftEditCollectionForm
+					client={client}
+					username={username}
+					collection={action.collection}
+					onSuccess={(ids) => {
+						// Refresh on the last successful tx so the panel
+						// picks up the new icon / baseUri / owner without
+						// the user having to click refresh.
+						if (ids.length > 0) handleSuccess(ids[ids.length - 1]);
+					}}
 					onClose={() => setAction(null)}
 				/>
 			)}
@@ -900,6 +929,14 @@ function MintIcon() {
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 			<line x1="12" y1="5" x2="12" y2="19" />
 			<line x1="5" y1="12" x2="19" y2="12" />
+		</svg>
+	);
+}
+function EditIcon() {
+	return (
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+			<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+			<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 		</svg>
 	);
 }
