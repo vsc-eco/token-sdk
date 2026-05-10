@@ -310,6 +310,40 @@ function DemoApp() {
 				)}
 			</div>
 
+			{/* ============== Locked / profile mode ============== */}
+
+			<h2>Locked mode</h2>
+			<p>
+				Profile pages, dashboards, and embeds for a specific community
+				wallet usually want the panel pinned to one account with no search
+				input. Pass <code>enableUserSearch={`{false}`}</code> to suppress
+				the lookup row, and optionally <code>viewAccount</code> to fix the
+				displayed account. When <code>viewAccount</code> differs from the
+				connected <code>username</code>, the panel auto-flips to read-only
+				and hides every write affordance.
+			</p>
+			<pre className="code">
+				<Code>{LOCKED_SNIPPET}</Code>
+			</pre>
+			<p>
+				Live example below: the connected user's panel with the search
+				hidden. Actions stay enabled because the displayed account matches
+				the signer. Drop <code>viewAccount="someone-else"</code> in to flip
+				it into read-only profile mode.
+			</p>
+			<div className="live">
+				{aioha && (
+					<MagiAssets
+						aioha={aioha}
+						username={username}
+						keyType={KeyTypes.Active}
+						enableUserSearch={false}
+						onSuccess={(tx) => setLastTx(tx)}
+						className={themedClass}
+					/>
+				)}
+			</div>
+
 			{/* ============== Headless ============== */}
 
 			<h2>Headless SDK - read providers</h2>
@@ -694,6 +728,30 @@ import '@vsc.eco/nft-widget/styles.css';
   username="alice"
   keyType={KeyTypes.Active}
   onSuccess={(txId) => console.log(txId)}
+/>`;
+
+const LOCKED_SNIPPET = `// Lock to the connected user, no search input.
+// Useful for personal dashboards where the user can't switch identities.
+<MagiAssets
+  aioha={aiohaInstance}
+  username="alice"
+  keyType={KeyTypes.Active}
+  enableUserSearch={false}
+/>
+
+// Lock to a specific account (read-only profile / community-wallet embeds).
+// viewAccount differs from username so write actions are auto-hidden.
+<MagiAssets
+  username="alice"             // optional - signer is irrelevant in read-only mode
+  viewAccount="diyhub"
+  enableUserSearch={false}
+/>
+
+// No connected wallet at all - pure read-only embed.
+// Drop into a static site to show a fixed wallet's holdings.
+<MagiAssets
+  viewAccount="diyhub"
+  enableUserSearch={false}
 />`;
 
 const READS_SNIPPET = `import { createNftClient, MAINNET_CONFIG, TokenAmount } from '@vsc.eco/nft-sdk';
