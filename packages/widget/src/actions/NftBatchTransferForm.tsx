@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { isValidHiveUsername, normalizeHiveAccount, type NftItem } from '@vsc.eco/nft-core';
 import type { NftClient } from '@vsc.eco/nft-sdk';
+import { BroadcastResult } from '../components/BroadcastResult.js';
 import { Field, TextInput } from '../components/Field.js';
 import { Modal } from '../components/Modal.js';
 
@@ -155,9 +156,7 @@ export function NftBatchTransferForm({
 
 			{txId ? (
 				<>
-					<div className="magi-nft-success">
-						Broadcast: <code>{txId}</code>
-					</div>
+					<BroadcastResult txId={txId} />
 					<button type="button" className="magi-nft-submit ghost" onClick={onClose}>
 						Done
 					</button>

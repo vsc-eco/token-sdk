@@ -731,17 +731,51 @@
 /* ==== Success banner ==== */
 .magi-nft-success {
 	margin-top: 0.4rem;
-	padding: 0.6rem 0.75rem;
+	padding: 0.55rem 0.75rem;
 	background: rgba(22, 163, 74, 0.06);
 	border: 1px solid rgba(22, 163, 74, 0.15);
 	border-radius: 12px;
 	color: var(--magi-green);
 	font-size: 0.8rem;
-	word-break: break-all;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
 }
-.magi-nft-success a {
+.magi-nft-success-label {
+	font-weight: 600;
+	flex-shrink: 0;
+}
+.magi-nft-success-tx {
+	background: rgba(22, 163, 74, 0.08);
 	color: var(--magi-green);
-	text-decoration: underline;
+	padding: 2px 8px;
+	border-radius: 6px;
+	font-size: 0.78rem;
+	font-family: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.magi-nft-success-actions {
+	display: flex;
+	gap: 0.3rem;
+	margin-left: auto;
+}
+/* Greenify the icon-buttons inside the success banner so they read as
+ * affirmative affordances instead of neutral toolbar icons. */
+.magi-nft-success .magi-nft-icon-btn {
+	color: var(--magi-green);
+	border-color: rgba(22, 163, 74, 0.25);
+	background: rgba(22, 163, 74, 0.04);
+	text-decoration: none;
+}
+.magi-nft-success .magi-nft-icon-btn:hover:not(:disabled) {
+	color: #ffffff;
+	background: var(--magi-green);
+	border-color: var(--magi-green);
 }
 
 /* ==== Batch checkbox row ==== */
