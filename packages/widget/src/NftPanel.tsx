@@ -7,6 +7,7 @@ import {
 	type BroadcastHook,
 	type MagiConfig,
 	type NftClient,
+	type NftCollection,
 	type NftItem,
 	type NftMetadata
 } from '@vsc.eco/nft-sdk';
@@ -91,6 +92,13 @@ interface CollectionGroup {
 	name: string;
 	symbol: string;
 	items: NftItem[];
+	/**
+	 * Collection metadata - present on every group. For held groups it's
+	 * the same `NftCollection` joined into each NftItem; for empty-owned
+	 * groups (no held items) it comes from `getCollectionsByOwner`.
+	 * Used by the Mint button's owner check + the empty-state header.
+	 */
+	collection: NftCollection;
 }
 
 /**
@@ -176,6 +184,15 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 	}, [providedClient, config, aioha, onBroadcast, keyType]);
 
 	const [items, setItems] = useState<NftItem[] | null>(null);
+	/**
+	 * Collections owned by the viewed account that aren't represented in
+	 * `items`. Surfaces a freshly-deployed-but-empty collection (or one
+	 * whose tokens have all been burned/transferred away) so the panel
+	 * can still show its group header + Mint button. Held collections
+	 * are deduplicated by contractId; this only contains the *empty*
+	 * residual.
+	 */
+	const [emptyOwnedCollections, setEmptyOwnedCollections] = useState<NftCollection[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [reloadTick, setReloadTick] = useState(0);
 	const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -251,29 +268,45 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 	useEffect(() => {
 		if (!account) {
 			setItems(null);
+			setEmptyOwnedCollections([]);
 			return;
 		}
 		let cancelled = false;
 		setError(null);
-		client.nft.provider
-			.getUserNfts(account)
-			.then((rows) => {
-				if (!cancelled) {
-					setItems(rows);
-					setExpanded((prev) => {
-						const next = { ...prev };
-						// First-load default: expand only when the user owns NFTs in
-						// a single collection - otherwise show every collection
-						// collapsed so the panel doesn't dump dozens of tiles at once.
-						const distinctCollections = new Set(rows.map((r) => r.contractId)).size;
-						const expandByDefault = distinctCollections <= 1;
-						for (const r of rows) {
-							if (next[r.contractId] === undefined) next[r.contractId] = expandByDefault;
-						}
-						return next;
-					});
-					setRefreshing(false);
-				}
+		// Fire both reads in parallel: held items (balance-driven) and
+		// the list of collections this account owns. The owned list lets
+		// us surface zero-balance collections (freshly-deployed, or all
+		// tokens transferred away) so their group header + Mint button
+		// stay reachable. Same pattern the token panel uses to expose
+		// empty-balance contracts the user owns.
+		Promise.all([
+			client.nft.provider.getUserNfts(account),
+			client.nft.provider.getCollectionsByOwner(account).catch(() => [])
+		])
+			.then(([rows, owned]) => {
+				if (cancelled) return;
+				setItems(rows);
+				const heldContractIds = new Set(rows.map((r) => r.contractId));
+				const empty = owned.filter((c) => !heldContractIds.has(c.contractId));
+				setEmptyOwnedCollections(empty);
+				setExpanded((prev) => {
+					const next = { ...prev };
+					// First-load default: expand only when the user is in a
+					// single collection (held + owned-empty combined).
+					const distinct = new Set([
+						...rows.map((r) => r.contractId),
+						...empty.map((c) => c.contractId)
+					]).size;
+					const expandByDefault = distinct <= 1;
+					for (const r of rows) {
+						if (next[r.contractId] === undefined) next[r.contractId] = expandByDefault;
+					}
+					for (const c of empty) {
+						if (next[c.contractId] === undefined) next[c.contractId] = expandByDefault;
+					}
+					return next;
+				});
+				setRefreshing(false);
 			})
 			.catch((err) => {
 				if (!cancelled) {
@@ -444,6 +477,8 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 	const groups = useMemo<CollectionGroup[]>(() => {
 		if (!items) return [];
 		const byContract = new Map<string, CollectionGroup>();
+		// Held collections first - their NftCollection comes from the
+		// item's joined `collection` field.
 		for (const it of items) {
 			let g = byContract.get(it.contractId);
 			if (!g) {
@@ -451,14 +486,29 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					contractId: it.contractId,
 					name: it.collection.name || 'Unnamed collection',
 					symbol: it.collection.symbol || '',
-					items: []
+					items: [],
+					collection: it.collection
 				};
 				byContract.set(it.contractId, g);
 			}
 			g.items.push(it);
 		}
+		// Then empty-owned collections - groups with `items: []`. The
+		// header still renders with the collection name + Mint button;
+		// the tile grid swaps to a one-line "no tokens minted yet"
+		// affordance to make the empty state legible.
+		for (const c of emptyOwnedCollections) {
+			if (byContract.has(c.contractId)) continue;
+			byContract.set(c.contractId, {
+				contractId: c.contractId,
+				name: c.name || 'Unnamed collection',
+				symbol: c.symbol || '',
+				items: [],
+				collection: c
+			});
+		}
 		return Array.from(byContract.values()).sort((a, b) => a.name.localeCompare(b.name));
-	}, [items]);
+	}, [items, emptyOwnedCollections]);
 
 	function handleSuccess(txId: string) {
 		setReloadTick((n) => n + 1);
@@ -568,7 +618,9 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 							<span className="magi-nft-group-name">{g.name}</span>
 							{g.symbol && <span className="magi-nft-group-symbol">{g.symbol}</span>}
 							<span className="magi-nft-group-count">
-								{g.items.length} token{g.items.length !== 1 ? 's' : ''}
+								{g.items.length === 0
+									? 'empty'
+									: `${g.items.length} token${g.items.length !== 1 ? 's' : ''}`}
 							</span>
 							{!readOnly && isExpanded && g.items.length > 1 && (
 								<button
@@ -590,7 +642,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 									title="Mint into this collection"
 									onClick={(e) => {
 										e.stopPropagation();
-										setAction({ kind: 'mint', collection: g.items[0].collection });
+										setAction({ kind: 'mint', collection: g.collection });
 									}}
 								>
 									<MintIcon />
@@ -598,7 +650,13 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 							)}
 						</div>
 
-						{isExpanded && (
+						{isExpanded && g.items.length === 0 && (
+							<div className="magi-nft-state">
+								No tokens minted yet.
+								{!readOnly && isOwnedCollection(g, username) ? ' Use the + button above to mint the first one.' : ''}
+							</div>
+						)}
+						{isExpanded && g.items.length > 0 && (
 							<div className="magi-nft-grid">
 								{groupTilesByTemplate(g.items).map((entry) => {
 									if (entry.kind === 'item') {
@@ -891,11 +949,14 @@ export function RefreshButton({
 /**
  * Bare-name match between the collection's `owner` field and the
  * connected user. Both `hive:alice` and `alice` flow through the
- * okinoko/Magi codebase; treat them as equivalent.
+ * okinoko/Magi codebase; treat them as equivalent. Reads `owner`
+ * directly off the group's `collection` (always populated, whether
+ * the group was synthesised from held items or from
+ * `getCollectionsByOwner` for the empty-owned case).
  */
 function isOwnedCollection(group: CollectionGroup, username: string | undefined): boolean {
 	if (!username) return false;
-	const owner = group.items[0]?.collection.owner;
+	const owner = group.collection.owner;
 	if (!owner) return false;
 	const ownerBare = owner.replace(/^(@|hive:)+/, '').toLowerCase();
 	const userBare = username.replace(/^(@|hive:)+/, '').toLowerCase();
