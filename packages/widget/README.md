@@ -1,6 +1,6 @@
 # @vsc.eco/nft-widget
 
-Embeddable Magi NFT + token panels — React component + web component. Renders the same flows as the okinoko-terminal NFT/token panel (your collections, your balances, transfer / burn / batch-transfer) in a single drop-in tag.
+Embeddable Magi NFT + token panels — React component + web component. Renders the same flows as the okinoko-terminal NFT/token panel (your collections, your balances, transfer / burn / batch-transfer / mint / deploy / distribute) in a single drop-in tag.
 
 For the full integration guide see the [top-level README](../../README.md). Quick reference below.
 
@@ -17,11 +17,24 @@ import { MagiAssets, MagiNftPanel, MagiTokenPanel } from '@vsc.eco/nft-widget';
 import '@vsc.eco/nft-widget/styles.css';
 
 // Combined NFTs + tokens with a tab strip:
-<MagiAssets aioha={aioha} username="lordbutterfly" keyType={KeyTypes.Active} />
+<MagiAssets
+  aioha={aioha}
+  username="lordbutterfly"
+  keyType={KeyTypes.Active}
+  enableDeploy        // Deploy collection / token button
+  enableRefresh       // top-right refresh
+  enableUserSearch    // browse another account
+/>
 
 // Or each panel alone:
 <MagiNftPanel   aioha={aioha} username="lordbutterfly" keyType={KeyTypes.Active} />
 <MagiTokenPanel aioha={aioha} username="lordbutterfly" keyType={KeyTypes.Active} />
+```
+
+### Locked / read-only viewer
+
+```tsx
+<MagiAssets username={undefined} viewAccount="diyhub" />
 ```
 
 ## Web component
@@ -37,10 +50,12 @@ import '@vsc.eco/nft-widget/styles.css';
   const el = document.getElementById('assets');
   el.aioha = yourAiohaInstance;
   el.keyType = KeyTypes.Active;
+  el.enableDeploy = true;
+  el.enableRefresh = true;
 </script>
 ```
 
-Three tags are registered: `<magi-nft-panel>`, `<magi-token-panel>`, `<magi-assets>`. Object-valued props (aioha, config, callbacks) MUST be set as JS properties — string/number/boolean attributes pass through fine.
+Three tags are registered: `<magi-nft-panel>`, `<magi-token-panel>`, `<magi-assets>`. Object-valued props (`aioha`, `config`, callbacks) MUST be set as JS properties — string/number/boolean attributes pass through fine.
 
 ## Bring-your-own UI
 
@@ -48,15 +63,56 @@ If you already render an NFT inventory and just want the action modals, import t
 
 ```tsx
 import {
-  NftTransferForm,
+  // NFT
+  NftTransferForm,            // single-recipient + distribute tab (editioned NFTs)
+  NftBatchTransferForm,       // multi-id batch + distribute tab
   NftBurnForm,
-  NftBatchTransferForm,
-  TokenTransferForm,
-  TokenBurnForm
+  NftMintForm,                // owner-only, simple/custom-JSON properties toggle
+  NftEditCollectionForm,      // owner-only, baseUri / metadata / ownership transfer
+  // Token
+  TokenTransferForm,          // single-recipient + distribute tab
+  TokenBurnForm,
+  TokenMintForm,              // owner-only
+  // Deploy
+  MagiContractDeploy          // deploy + init in one dialog
 } from '@vsc.eco/nft-widget';
 ```
 
 Each accepts a `client` (from `createNftClient`), a `username`, the relevant item/info, and `onSuccess` / `onClose` callbacks.
+
+### Distribute tabs
+
+Three forms ship a "Distribute (1 each)" tab beside the single-recipient flow:
+
+- **`TokenTransferForm`** — always available. Paste a recipient list, sends `amount` of token per recipient.
+- **`NftBatchTransferForm`** — always available. Each recipient gets one copy of each id you selected (expanded by amount).
+- **`NftTransferForm`** — only when the NFT is editioned (`!isUnique && balance >= 2`). Each recipient gets one copy of the same token id.
+
+Each builds N independent ops and broadcasts via `client.broadcastBatch` with `chunkSize: 4` + `delayBetweenChunksMs: 4000` to clear Hive's per-block `custom_json` cap. The submit button cycles through `Signing batch K/N…` → `Waiting for next block (Ts)…` so the user knows what's happening.
+
+### Owner affordances
+
+When a user views a collection they own:
+
+- The collection header shows a pencil icon → `NftEditCollectionForm` (baseUri, simple `{description, icon}` or custom JSON, optional ownership transfer under "Show advanced" — only signs ops for fields that actually changed).
+- The collection header shows a plus icon → `NftMintForm` (recipient, token id, amount, max supply, soulbound, properties via simple `{name, description, image}` or custom JSON; mirrors okinoko's `NftPropertiesInput`).
+- Empty-but-owned collections (you own the contract, hold zero tokens) still appear in the panel so you can mint into them.
+
+### Deploy widget
+
+```tsx
+import { MagiContractDeploy } from '@vsc.eco/nft-widget';
+
+<MagiContractDeploy
+  client={client}
+  username="alice"
+  kind="nft"                 // or "token", or omit to let the user pick
+  onDeployed={(contractId) => console.log('new:', contractId)}
+  onClose={() => setOpen(false)}
+/>
+```
+
+It posts a build request to `https://deploy.okinoko.io`, streams the build log via SSE (auto-scroll, word-wrap, stage pills, circular spinner during `building` / `waiting-contract`), polls the indexer for the new contract id (filtered by creator + creation timestamp so you only ever resolve to *your* deployment), and opens the init dialog with sensible defaults. Closing the dialog while in flight asks for confirmation.
 
 ## Theming
 

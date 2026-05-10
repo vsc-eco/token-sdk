@@ -9,7 +9,7 @@ import {
 	type NftClient,
 	type TokenBalance,
 	type TokenInfo
-} from '@vsc.eco/nft-sdk';
+} from '@vsc.eco/token-sdk';
 import { TokenTransferForm } from './actions/TokenTransferForm.js';
 import { TokenBurnForm } from './actions/TokenBurnForm.js';
 import { TokenMintForm } from './actions/TokenMintForm.js';

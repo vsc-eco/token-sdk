@@ -1,5 +1,5 @@
 {
-  "name": "magi-nft-sdk-monorepo",
+  "name": "magi-token-sdk-monorepo",
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -16,7 +16,7 @@
   "pnpm": {
     "overrides": {
       "@vsc.eco/nft-core": "workspace:*",
-      "@vsc.eco/nft-sdk": "workspace:*",
+      "@vsc.eco/token-sdk": "workspace:*",
       "@vsc.eco/nft-widget": "workspace:*"
     }
   },

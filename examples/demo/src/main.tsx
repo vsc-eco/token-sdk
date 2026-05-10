@@ -12,7 +12,7 @@ import {
 	createNftClient,
 	MAINNET_CONFIG,
 	TokenAmount
-} from '@vsc.eco/nft-sdk';
+} from '@vsc.eco/token-sdk';
 
 // Optional dark theme - toggled at runtime in the demo.
 import '@vsc.eco/nft-widget/themes/altera-dark.css';
@@ -87,10 +87,10 @@ function DemoApp() {
 		const instance = new Aioha();
 		instance.registerKeychain();
 		instance.registerHiveSigner({
-			app: 'magi-nft-sdk-demo',
+			app: 'magi-token-sdk-demo',
 			callbackURL: typeof window !== 'undefined' ? window.location.origin : ''
 		});
-		instance.registerHiveAuth({ name: 'magi-nft-sdk-demo' });
+		instance.registerHiveAuth({ name: 'magi-token-sdk-demo' });
 		const existing = instance.loadAuth();
 		if (existing) setUsername(instance.getCurrentUser() ?? undefined);
 		setAioha(instance);
@@ -111,7 +111,7 @@ function DemoApp() {
 		const user = window.prompt('Hive username:');
 		if (!user) return;
 		const res = await aioha.login(first as Providers, user, {
-			msg: 'Sign in to Magi NFT SDK demo',
+			msg: 'Sign in to Magi Token SDK demo',
 			keyType: KeyTypes.Posting
 		});
 		if (res.success) setUsername(aioha.getCurrentUser() ?? user);
@@ -156,7 +156,7 @@ function DemoApp() {
 				</ul>
 			</aside>
 			<main className="main">
-			<h1>Magi NFT SDK</h1>
+			<h1>Magi Token SDK</h1>
 			<p className="intro">
 				Drop-in NFT + token panels for the Magi network. Implements the
 				official Magi NFT (ERC-1155-style) and token (ERC-20-style) contract
@@ -176,8 +176,9 @@ function DemoApp() {
 				>
 					magi_token-contract
 				</a>
-				. Renders collections, balances, transfer / burn / batch-transfer
-				flows, with a headless mode for hosts that build their own UI.
+				. Renders collections, balances, transfer / burn / batch-transfer /
+				mint / deploy / distribute flows, with a headless mode for hosts
+				that build their own UI.
 			</p>
 
 			{/* ============== Wallet status (prominent CTA) ============== */}
@@ -280,7 +281,7 @@ function DemoApp() {
 					<code>@vsc.eco/nft-core</code> - operation builders and types. Zero deps.
 				</li>
 				<li>
-					<code>@vsc.eco/nft-sdk</code> - Hasura-indexed reads, broadcast orchestrator,
+					<code>@vsc.eco/token-sdk</code> - Hasura-indexed reads, broadcast orchestrator,
 					per-token image resolver, multi-endpoint failover.
 				</li>
 				<li>
@@ -372,7 +373,7 @@ function DemoApp() {
 			<p>
 				Lists the user's fungible-token balances with send + burn actions per
 				row. <code>TokenAmount</code> from{' '}
-				<code>@vsc.eco/nft-sdk</code> handles per-token decimals - the action
+				<code>@vsc.eco/token-sdk</code> handles per-token decimals - the action
 				forms render values in human units and translate to smallest units when
 				building the transfer op.
 			</p>
@@ -803,7 +804,7 @@ const INSTALL_SNIPPET = `// React app - pull the widget; it depends on the core 
 pnpm add @vsc.eco/nft-widget react react-dom @aioha/aioha
 
 // Headless / no UI - pull just the SDK
-pnpm add @vsc.eco/nft-sdk
+pnpm add @vsc.eco/token-sdk
 
 // Pure op builders, zero deps
 pnpm add @vsc.eco/nft-core`;
@@ -916,7 +917,7 @@ const LOCKED_SNIPPET = `// Lock to the connected user, no search input.
   enableUserSearch={false}
 />`;
 
-const READS_SNIPPET = `import { createNftClient, MAINNET_CONFIG, TokenAmount } from '@vsc.eco/nft-sdk';
+const READS_SNIPPET = `import { createNftClient, MAINNET_CONFIG, TokenAmount } from '@vsc.eco/token-sdk';
 
 const client = createNftClient({ config: MAINNET_CONFIG });
 
@@ -930,7 +931,7 @@ for (const row of tokens) {
   console.log(\`\${human} \${row.info.symbol}\`);
 }`;
 
-const OP_SNIPPET = `import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/nft-sdk';
+const OP_SNIPPET = `import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/token-sdk';
 
 const client = createNftClient({ config: MAINNET_CONFIG });
 
@@ -946,7 +947,7 @@ const { op, call } = client.nft.transferOp(
 //   aioha.vscCallContract(call.contractId, call.action, call.payload,
 //     call.rcLimit, call.intents, KeyTypes.Active)`;
 
-const IMAGE_SNIPPET = `import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/nft-sdk';
+const IMAGE_SNIPPET = `import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/token-sdk';
 
 const client = createNftClient({ config: MAINNET_CONFIG });
 
@@ -1005,7 +1006,7 @@ import '@vsc.eco/nft-widget/themes/altera-dark.css';
   /* full list in the README under "Theming" */
 }`;
 
-const FAILOVER_SNIPPET = `import { createNftClient } from '@vsc.eco/nft-sdk';
+const FAILOVER_SNIPPET = `import { createNftClient } from '@vsc.eco/token-sdk';
 
 const client = createNftClient({
   config: {

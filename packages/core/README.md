@@ -2,7 +2,7 @@
 
 Pure operation builders + types for the Magi NFT (ERC-1155) and token (ERC-20) contracts. Zero runtime dependencies.
 
-This package builds Hive `custom_json` operations and the inner `vsc.call` payloads — it does NOT broadcast, query, or sign anything. Use it directly when you want full control of the signing pipeline; otherwise reach for `@vsc.eco/nft-sdk` (which adds queries + a broadcast orchestrator) or `@vsc.eco/nft-widget` (which adds React components).
+This package builds Hive `custom_json` operations and the inner `vsc.call` payloads — it does NOT broadcast, query, or sign anything. Use it directly when you want full control of the signing pipeline; otherwise reach for `@vsc.eco/token-sdk` (which adds queries + a broadcast orchestrator + a deployer client) or `@vsc.eco/nft-widget` (which adds React components).
 
 ## Install
 
@@ -53,6 +53,40 @@ const { op } = buildNftTransfer(ctx, {
 // op = ['custom_json', { required_auths: [...], required_posting_auths: [], id: 'vsc.call', json: '...' }]
 ```
 
+### Metadata / properties — wire-format gotcha
+
+The contract's tinyjson unmarshaler reads the `metadata` (collection) and `properties` (per-token) fields via `in.Raw()`, which means the wire payload must carry those keys as **raw JSON objects, not stringified-JSON strings**:
+
+```ts
+// CORRECT — raw object passthrough
+{ metadata: { description: '...', icon: '...' } }
+
+// WRONG — gets stored as the literal string `"{...}"`, including the quotes
+{ metadata: '{"description":"...","icon":"..."}' }
+```
+
+The four builders that touch these fields — `buildNftInit`, `buildNftMint`, `buildNftSetCollectionMetadata`, `buildNftSetProperties` — accept both shapes (a plain object or a JSON string) and always emit the raw-object form on the wire. Pass whatever's convenient for your UI:
+
+```ts
+// Plain object (most common)
+buildNftMint(ctx, {
+  to: 'alice',
+  id: 'card-001',
+  amount: 1,
+  properties: { name: 'Card #1', description: '...', image: 'https://...' }
+});
+
+// JSON string (e.g. straight from a textarea — parsed and re-injected as object)
+buildNftMint(ctx, {
+  to: 'alice',
+  id: 'card-001',
+  amount: 1,
+  properties: '{"name":"Card #1","description":"...","image":"https://..."}'
+});
+```
+
+If the input is a string and isn't valid JSON, or parses to a non-object (array / scalar), the builder throws.
+
 ### Token builders
 
 ```ts
@@ -97,7 +131,7 @@ import type {
   NftCollection,
   NftBalance,
   NftTokenInfo,
-  NftItem,
+  NftItem,            // includes templateId for mintSeries grouping
   NftMetadata,
   TokenInfo,
   TokenBalance,
@@ -107,4 +141,4 @@ import type {
 } from '@vsc.eco/nft-core';
 ```
 
-`MAINNET_CONFIG` and `TESTNET_CONFIG` are the canonical configs the SDK uses by default.
+`MAINNET_CONFIG` and `TESTNET_CONFIG` are the canonical configs the SDK uses by default. Both ship with multiple `indexerHasuraUrls` + `gqlUrls` for automatic mirror failover.

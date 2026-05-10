@@ -10,7 +10,7 @@ import {
 	type NftCollection,
 	type NftItem,
 	type NftMetadata
-} from '@vsc.eco/nft-sdk';
+} from '@vsc.eco/token-sdk';
 import { Modal } from './components/Modal.js';
 import { NftTransferForm } from './actions/NftTransferForm.js';
 import { NftBurnForm } from './actions/NftBurnForm.js';

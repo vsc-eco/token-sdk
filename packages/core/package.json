@@ -6,10 +6,10 @@
   },
   "description": "Magi (VSC) NFT + token operation builders and types — pure functions, no framework dependencies",
   "keywords": ["hive", "vsc", "magi", "nft", "erc1155", "token", "erc20"],
-  "homepage": "https://github.com/vsc-eco/nft-sdk/tree/main/packages/core#readme",
+  "homepage": "https://github.com/vsc-eco/token-sdk/tree/main/packages/core#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vsc-eco/nft-sdk.git",
+    "url": "git+https://github.com/vsc-eco/token-sdk.git",
     "directory": "packages/core"
   },
   "type": "module",

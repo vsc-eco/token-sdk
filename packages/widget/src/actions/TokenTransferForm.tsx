@@ -5,7 +5,7 @@ import {
 	normalizeHiveAccount,
 	type TokenInfo
 } from '@vsc.eco/nft-core';
-import type { NftClient, TokenOpBundle } from '@vsc.eco/nft-sdk';
+import type { NftClient, TokenOpBundle } from '@vsc.eco/token-sdk';
 import { BroadcastResult } from '../components/BroadcastResult.js';
 import { Field, TextInput } from '../components/Field.js';
 import { Modal } from '../components/Modal.js';

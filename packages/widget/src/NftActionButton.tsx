@@ -7,7 +7,7 @@ import {
 	type MagiConfig,
 	type NftClient,
 	type NftItem
-} from '@vsc.eco/nft-sdk';
+} from '@vsc.eco/token-sdk';
 import { NftTransferForm } from './actions/NftTransferForm.js';
 import { NftBurnForm } from './actions/NftBurnForm.js';
 

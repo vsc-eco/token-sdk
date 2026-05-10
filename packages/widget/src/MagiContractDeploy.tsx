@@ -12,7 +12,7 @@ import {
 	type DeployerOp,
 	type MagiConfig,
 	type NftClient
-} from '@vsc.eco/nft-sdk';
+} from '@vsc.eco/token-sdk';
 import { BroadcastResult } from './components/BroadcastResult.js';
 import { Field, TextInput } from './components/Field.js';
 import { Modal } from './components/Modal.js';

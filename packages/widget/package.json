@@ -6,10 +6,10 @@
   },
   "description": "Embeddable Magi NFT + token panels — React component + web component",
   "keywords": ["hive", "vsc", "magi", "nft", "widget", "react", "web-component"],
-  "homepage": "https://github.com/vsc-eco/nft-sdk/tree/main/packages/widget#readme",
+  "homepage": "https://github.com/vsc-eco/token-sdk/tree/main/packages/widget#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vsc-eco/nft-sdk.git",
+    "url": "git+https://github.com/vsc-eco/token-sdk.git",
     "directory": "packages/widget"
   },
   "type": "module",
@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@vsc.eco/nft-core": "0.0.1",
-    "@vsc.eco/nft-sdk": "0.0.1",
+    "@vsc.eco/token-sdk": "0.0.1",
     "@r2wc/react-to-web-component": "^2.0.3"
   },
   "devDependencies": {

@@ -6,7 +6,7 @@ settings:
 
 overrides:
   '@vsc.eco/nft-core': workspace:*
-  '@vsc.eco/nft-sdk': workspace:*
+  '@vsc.eco/token-sdk': workspace:*
   '@vsc.eco/nft-widget': workspace:*
 
 importers:
@@ -31,12 +31,12 @@ importers:
       '@vsc.eco/nft-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@vsc.eco/nft-sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
       '@vsc.eco/nft-widget':
         specifier: workspace:*
         version: link:../../packages/widget
+      '@vsc.eco/token-sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -96,7 +96,7 @@ importers:
       '@vsc.eco/nft-core':
         specifier: workspace:*
         version: link:../core
-      '@vsc.eco/nft-sdk':
+      '@vsc.eco/token-sdk':
         specifier: workspace:*
         version: link:../sdk
     devDependencies:

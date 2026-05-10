@@ -1,28 +1,31 @@
-# @vsc.eco/nft-sdk
+# @vsc.eco/token-sdk
 
-Read providers + broadcast orchestrator on top of [`@vsc.eco/nft-core`](../core). This is the layer the widget consumes; reach for it directly when you want full SDK functionality but no UI.
+Read providers + broadcast orchestrator + deployer client on top of [`@vsc.eco/nft-core`](../core). This is the layer the widget consumes; reach for it directly when you want full SDK functionality but no UI.
 
 ## Install
 
 ```bash
-pnpm add @vsc.eco/nft-sdk
+pnpm add @vsc.eco/token-sdk
 ```
 
 ## Quick start
 
 ```ts
-import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/nft-sdk';
+import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/token-sdk';
 
 // No signer — read-only mode.
 const client = createNftClient({ config: MAINNET_CONFIG });
 
 // Pull every NFT a user holds, joined with collection + token info.
 const items = await client.nft.provider.getUserNfts('hive:lordbutterfly');
-// items: NftItem[] — { contractId, tokenId, balance, isUnique, soulbound, collection, ... }
+// items: NftItem[] — { contractId, tokenId, balance, isUnique, soulbound, templateId, collection, ... }
 
-// Same for fungible tokens.
+// Collections the user owns, even when they hold zero tokens themselves.
+const owned = await client.nft.provider.getCollectionsByOwner('hive:lordbutterfly');
+
+// Same for fungible tokens (held + owned-but-unminted).
 const tokens = await client.token.provider.getUserTokens('hive:lordbutterfly');
-// tokens: Array<TokenBalance & { info: TokenInfo }>
+const ownedTokens = await client.token.provider.getOwnedTokens('hive:lordbutterfly');
 ```
 
 ## Writing transactions
@@ -31,7 +34,7 @@ Pass an Aioha instance — or any object that exposes `vscCallContract` / `signA
 
 ```ts
 import { Aioha, KeyTypes } from '@aioha/aioha';
-import { createNftClient } from '@vsc.eco/nft-sdk';
+import { createNftClient } from '@vsc.eco/token-sdk';
 
 const aioha = new Aioha();
 // register providers, login, etc...
@@ -59,7 +62,7 @@ const client = createNftClient({
 
 ## Build-without-broadcast
 
-Every write method has a sibling `*Op` method that returns the bundle without broadcasting. Use these when you want the SDK's payload formatting but a fully custom signing path:
+Every write method has a sibling `*Op` method that returns the bundle without broadcasting. Use these when you want the SDK's payload formatting but a fully custom signing path, or when you're feeding `broadcastBatch` (below):
 
 ```ts
 const bundle = client.nft.transferOp(contractId, 'alice', {
@@ -72,7 +75,72 @@ const bundle = client.nft.transferOp(contractId, 'alice', {
 //                 bundle.call.intents, KeyTypes.Active)
 ```
 
-The full surface (`transferOp`, `batchTransferOp`, `burnOp`, `mintOp`, `approveOp`, `setApprovalForAllOp`, `setUriOp`, ... and the same set for tokens) is documented in the type definitions.
+The full surface (`transferOp`, `batchTransferOp`, `burnOp`, `mintOp`, `approveOp`, `setApprovalForAllOp`, `setUriOp`, `setPropertiesOp`, `setCollectionMetadataOp`, `changeOwnerOp`, ... and the same set for tokens) is documented in the type definitions.
+
+## Chunked batch broadcasting
+
+Hive accepts at most ~5 `custom_json` operations per account per Hive block. When you fan out N ops (distributing one NFT per recipient, batch-minting an editioned series, etc.) signing them all in one batch is rejected with `Account already submitted N custom json operation(s) this block`. Use `broadcastBatch` to chunk + delay automatically:
+
+```ts
+const bundles = recipients.map((to) =>
+  client.nft.transferOp(contractId, 'alice', {
+    from: 'alice', to, tokenId: 'card-001', amount: 1
+  })
+);
+
+const result = await client.broadcastBatch(bundles, {
+  chunkSize: 4,                  // ops per signature (defaults to 4 — leaves headroom under Hive's per-block cap)
+  delayBetweenChunksMs: 4000,    // wait between chunks so each lands in a fresh block
+  onProgress: (i)               => console.log(`signed chunk ${i + 1}`),
+  onWaiting:  (next, total, ms) => console.log(`waiting ${ms}ms before chunk ${next + 1}/${total}`)
+});
+// result.txIds: string[]   — one entry per chunk
+```
+
+This is the same code path the widget's distribute tabs and batch transfers use.
+
+## Deployer client
+
+Deploy a brand-new NFT collection or token contract by posting a build request to `https://deploy.okinoko.io`, streaming the build log via SSE, and polling the indexer for the new contract id once on-chain.
+
+```ts
+const stream = client.deployer.deploy({
+  kind: 'nft',           // 'nft' | 'token'
+  username: 'alice',
+  manifest: {            // canonical magi_nft-contract / magi_token-contract templates
+    repo: 'magi-eco/magi_nft-contract',
+    ref: 'main'
+  },
+  timeoutMs: 300_000     // default 300s — building can take a few minutes
+});
+
+for await (const evt of stream) {
+  // evt: { stage: 'queued'|'building'|'broadcasting'|'waiting-contract'|'done'|'error', line?, contractId?, error? }
+}
+
+// Or hand it to MagiContractDeploy (in @vsc.eco/nft-widget), which
+// renders the stream as a stage-pill + log pane.
+
+// Find the new contract id (creator + creation timestamp filter, so you
+// only ever resolve to YOUR deployment, not a concurrent one):
+const contractId = await client.deployer.findContractAfter('alice', deployStartedAt);
+```
+
+## Image resolution
+
+NFT images come from three sources, in priority order:
+
+```ts
+import { resolveNftImages } from '@vsc.eco/token-sdk';
+
+const items = await client.nft.provider.getUserNfts('hive:alice');
+const withImages = await resolveNftImages(items);
+// withImages[i].imageUrl resolves to the first hit:
+//   1. own properties.image
+//   2. template (mintSeries) properties.image
+//   3. baseUri + tokenId
+//   ...else the bundled Magi-logo data URI
+```
 
 ## Providers
 
@@ -90,15 +158,15 @@ The default providers query:
 
 | Source | Tables / endpoints |
 |---|---|
-| Hasura indexer | `magi_nft_overview`, `magi_nft_balances`, `magi_nft_token_info`, `magi_nft_token_supply`, `magi_token_overview`, `magi_token_balances` |
-| Magi GraphQL node | `getStateByKeys` (for collection_metadata) |
+| Hasura indexer | `magi_nft_overview`, `magi_nft_balances`, `magi_nft_token_info`, `magi_nft_token_supply`, `magi_nft_template_tokens`, `magi_token_overview`, `magi_token_balances` |
+| Magi GraphQL node | `getStateByKeys` (collection / token metadata), `findContract` (deployer poll) |
 
 ## Endpoint failover
 
 Both `MAINNET_CONFIG` and any custom `MagiConfig` accept ordered URL lists for both the indexer and the Magi node. The first entry is tried first; on any HTTP, network, parse, or `errors[]` response the next entry is tried automatically. After every URL fails, the SDK throws with a per-URL summary so you can see what went wrong.
 
 ```ts
-import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/nft-sdk';
+import { createNftClient, MAINNET_CONFIG } from '@vsc.eco/token-sdk';
 
 // Mainnet ships with multiple mirrors out of the box — no extra config needed.
 const client = createNftClient({ config: MAINNET_CONFIG });
@@ -139,7 +207,7 @@ const client = createNftClient({
 For one-off calls outside the client, the fetcher is exported directly:
 
 ```ts
-import { gqlFetchFailover, resolveIndexerUrls, MAINNET_CONFIG } from '@vsc.eco/nft-sdk';
+import { gqlFetchFailover, resolveIndexerUrls, MAINNET_CONFIG } from '@vsc.eco/token-sdk';
 
 const data = await gqlFetchFailover(
   resolveIndexerUrls(MAINNET_CONFIG),
@@ -149,4 +217,4 @@ const data = await gqlFetchFailover(
 
 ## Headless RC handling
 
-Unlike `@vsc.eco/crosschain-sdk`'s `quickSwap`, the NFT client does not run a simulation step before broadcasting — most NFT/token actions are far below RC pressure. If you need RC checks, build the op with `*Op`, run your own `simulateContractCall`, and rebuild the bundle with the tightened `rc_limit`.
+Unlike `@vsc.eco/crosschain-sdk`'s `quickSwap`, the NFT/token client does not run a simulation step before broadcasting — most NFT/token actions are far below RC pressure. If you need RC checks, build the op with `*Op`, run your own `simulateContractCall`, and rebuild the bundle with the tightened `rc_limit`.
