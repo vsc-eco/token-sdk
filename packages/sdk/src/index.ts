@@ -43,7 +43,7 @@ import {
 	type TokenTransferParams,
 	type VscCall,
 	type VscIntent
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 import { createNftProvider, type NftProvider } from './nftProvider.js';
 import { createTokenProvider, type TokenProvider } from './tokenProvider.js';
 import {
@@ -57,8 +57,8 @@ export {
 	TESTNET_CONFIG,
 	resolveIndexerUrls,
 	resolveGqlUrls
-} from '@vsc.eco/nft-core';
-export { TokenAmount } from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
+export { TokenAmount } from '@vsc.eco/token-core';
 export { gqlFetchFailover, gqlFetchOne };
 export type { GqlFetchOptions };
 export type {
@@ -74,7 +74,7 @@ export type {
 	CustomJsonOp,
 	NftOpBundle,
 	TokenOpBundle
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 export {
 	extractImageUrl,
 	tokenPropsKey,

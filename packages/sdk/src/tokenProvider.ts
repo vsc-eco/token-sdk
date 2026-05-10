@@ -3,7 +3,7 @@ import {
 	type MagiConfig,
 	type TokenBalance,
 	type TokenInfo
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 import { gqlFetchFailover, type GqlFetchOptions } from './graphql.js';
 
 /**

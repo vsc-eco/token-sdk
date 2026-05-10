@@ -4,7 +4,7 @@ import {
 	isValidHiveUsername,
 	normalizeHiveAccount,
 	type TokenInfo
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 import type { NftClient, TokenOpBundle } from '@vsc.eco/token-sdk';
 import { BroadcastResult } from '../components/BroadcastResult.js';
 import { Field, TextInput } from '../components/Field.js';

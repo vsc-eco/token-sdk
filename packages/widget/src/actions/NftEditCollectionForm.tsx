@@ -3,7 +3,7 @@ import {
 	isValidHiveUsername,
 	normalizeHiveAccount,
 	type NftCollection
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 import type { NftClient, NftMetadata, NftOpBundle } from '@vsc.eco/token-sdk';
 import { BroadcastResult } from '../components/BroadcastResult.js';
 import { Field, TextInput } from '../components/Field.js';

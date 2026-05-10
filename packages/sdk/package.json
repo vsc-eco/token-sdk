@@ -29,7 +29,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vsc.eco/nft-core": "0.0.1"
+    "@vsc.eco/token-core": "0.0.1"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

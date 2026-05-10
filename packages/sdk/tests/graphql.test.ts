@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gqlFetchFailover, gqlFetchOne } from '../src/graphql.js';
-import { resolveIndexerUrls, MAINNET_CONFIG } from '@vsc.eco/nft-core';
+import { resolveIndexerUrls, MAINNET_CONFIG } from '@vsc.eco/token-core';
 
 const realFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

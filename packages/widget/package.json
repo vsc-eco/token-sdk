@@ -1,5 +1,5 @@
 {
-  "name": "@vsc.eco/nft-widget",
+  "name": "@vsc.eco/token-widget",
   "version": "0.0.1",
   "publishConfig": {
     "access": "public"
@@ -42,7 +42,7 @@
     "@aioha/aioha": { "optional": true }
   },
   "dependencies": {
-    "@vsc.eco/nft-core": "0.0.1",
+    "@vsc.eco/token-core": "0.0.1",
     "@vsc.eco/token-sdk": "0.0.1",
     "@r2wc/react-to-web-component": "^2.0.3"
   },

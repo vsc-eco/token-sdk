@@ -1,5 +1,5 @@
 {
-  "name": "@vsc.eco/nft-core",
+  "name": "@vsc.eco/token-core",
   "version": "0.0.1",
   "publishConfig": {
     "access": "public"

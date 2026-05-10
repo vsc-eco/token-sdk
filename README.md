@@ -10,9 +10,9 @@ Built for **Hive Keychain**, **Peakd**, **Ecency**, and any app that wants to gi
 
 | Package | Description |
 |---|---|
-| [`@vsc.eco/nft-core`](packages/core) | NFT (ERC-1155) + token (ERC-20) operation builders, types, decimal helpers. Zero runtime deps. |
+| [`@vsc.eco/token-core`](packages/core) | NFT (ERC-1155) + token (ERC-20) operation builders, types, decimal helpers. Zero runtime deps. |
 | [`@vsc.eco/token-sdk`](packages/sdk) | Hasura-indexed read providers (collections, balances, token info), broadcast orchestrator with chunked-batch support, deployer client. |
-| [`@vsc.eco/nft-widget`](packages/widget) | React components + web components — `<MagiNftPanel>`, `<MagiTokenPanel>`, `<MagiAssets>`, plus per-action forms and a deploy modal. |
+| [`@vsc.eco/token-widget`](packages/widget) | React components + web components — `<MagiNftPanel>`, `<MagiTokenPanel>`, `<MagiAssets>`, plus per-action forms and a deploy modal. |
 
 The split mirrors [`@vsc.eco/crosschain-sdk`](../crosschain-sdk): pull only the layer you need.
 
@@ -42,7 +42,7 @@ import {
   TokenMintForm,              // owner-only
   // Deploy
   MagiContractDeploy          // deploy + init in one dialog (NFT or token)
-} from '@vsc.eco/nft-widget';
+} from '@vsc.eco/token-widget';
 ```
 
 ## Integration paths
@@ -50,8 +50,8 @@ import {
 ### 1. React app (combined panel)
 
 ```tsx
-import { MagiAssets } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+import { MagiAssets } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 <MagiAssets
   aioha={aiohaInstance}
@@ -67,8 +67,8 @@ import '@vsc.eco/nft-widget/styles.css';
 ### 2. React app (NFT-only or token-only)
 
 ```tsx
-import { MagiNftPanel, MagiTokenPanel } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+import { MagiNftPanel, MagiTokenPanel } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 <MagiNftPanel aioha={aioha} username={username} keyType={KeyTypes.Active} enableDeploy enableRefresh />
 <MagiTokenPanel aioha={aioha} username={username} keyType={KeyTypes.Active} enableDeploy enableRefresh />
@@ -78,7 +78,7 @@ import '@vsc.eco/nft-widget/styles.css';
 
 ```html
 <script type="module">
-  import '@vsc.eco/nft-widget/webcomponent';
+  import '@vsc.eco/token-widget/webcomponent';
 </script>
 
 <magi-assets id="assets" username="lordbutterfly"></magi-assets>
@@ -144,8 +144,8 @@ await client.broadcastBatch(bundles, {
 For hosts that don't use Aioha, pass an `onBroadcast` callback. The SDK still builds the ops; your callback only signs and broadcasts via whatever pipeline the host has.
 
 ```tsx
-import { MagiNftPanel } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+import { MagiNftPanel } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 <MagiNftPanel
   username="alice"
@@ -161,7 +161,7 @@ import '@vsc.eco/nft-widget/styles.css';
 ### 7. Bring-your-own UI, our action modals
 
 ```tsx
-import { NftTransferForm, NftMintForm, MagiContractDeploy } from '@vsc.eco/nft-widget';
+import { NftTransferForm, NftMintForm, MagiContractDeploy } from '@vsc.eco/token-widget';
 import { createNftClient } from '@vsc.eco/token-sdk';
 
 const client = createNftClient({ aioha });
@@ -249,7 +249,7 @@ Both widgets use CSS custom properties scoped to `.magi-nft`. Override any `--ma
 Default is a neutral light theme. An Altera dark theme is available:
 
 ```ts
-import '@vsc.eco/nft-widget/themes/altera-dark.css';
+import '@vsc.eco/token-widget/themes/altera-dark.css';
 // then:
 <MagiAssets className="magi-nft-altera-host" ... />
 ```
@@ -281,13 +281,13 @@ The demo renders all three React components, the headless mode, the deploy widge
 ## Architecture
 
 ```
-@vsc.eco/nft-core         pure ops + types        (no deps)
+@vsc.eco/token-core         pure ops + types        (no deps)
         ▲
         │
 @vsc.eco/token-sdk        fetch + orchestrator    (node 18+ fetch / browser fetch)
         ▲
         │
-@vsc.eco/nft-widget       React + web component   (peer-deps on react, optional aioha)
+@vsc.eco/token-widget       React + web component   (peer-deps on react, optional aioha)
 ```
 
 - **Reads** → `client.nft.provider.getUserNfts(account)` calls the Magi indexer (Hasura) and the Magi node (`getStateByKeys` for collection metadata). Tables: `magi_nft_overview`, `magi_nft_balances`, `magi_nft_token_info`, `magi_nft_token_supply`, `magi_nft_template_tokens`, `magi_token_overview`, `magi_token_balances`. `getCollectionsByOwner` and `getOwnedTokens` cover the empty-inventory cases.

@@ -7,7 +7,7 @@ import {
 	MagiNftPanel,
 	MagiTokenPanel,
 	magiFallbackImage
-} from '@vsc.eco/nft-widget';
+} from '@vsc.eco/token-widget';
 import {
 	createNftClient,
 	MAINNET_CONFIG,
@@ -15,7 +15,7 @@ import {
 } from '@vsc.eco/token-sdk';
 
 // Optional dark theme - toggled at runtime in the demo.
-import '@vsc.eco/nft-widget/themes/altera-dark.css';
+import '@vsc.eco/token-widget/themes/altera-dark.css';
 
 type Theme = 'light' | 'dark';
 
@@ -278,14 +278,14 @@ function DemoApp() {
 			</pre>
 			<ul>
 				<li>
-					<code>@vsc.eco/nft-core</code> - operation builders and types. Zero deps.
+					<code>@vsc.eco/token-core</code> - operation builders and types. Zero deps.
 				</li>
 				<li>
 					<code>@vsc.eco/token-sdk</code> - Hasura-indexed reads, broadcast orchestrator,
 					per-token image resolver, multi-endpoint failover.
 				</li>
 				<li>
-					<code>@vsc.eco/nft-widget</code> - React components + web components.
+					<code>@vsc.eco/token-widget</code> - React components + web components.
 				</li>
 			</ul>
 
@@ -801,13 +801,13 @@ function HeadlessImages({ username }: { username: string | undefined }) {
 }
 
 const INSTALL_SNIPPET = `// React app - pull the widget; it depends on the core + sdk packages
-pnpm add @vsc.eco/nft-widget react react-dom @aioha/aioha
+pnpm add @vsc.eco/token-widget react react-dom @aioha/aioha
 
 // Headless / no UI - pull just the SDK
 pnpm add @vsc.eco/token-sdk
 
 // Pure op builders, zero deps
-pnpm add @vsc.eco/nft-core`;
+pnpm add @vsc.eco/token-core`;
 
 const AUTH_SNIPPET = `import { Aioha, KeyTypes } from '@aioha/aioha';
 
@@ -835,8 +835,8 @@ async function login(username: string) {
   if (!res.success) throw new Error(res.error);
 }`;
 
-const ASSETS_SNIPPET = `import { MagiAssets } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+const ASSETS_SNIPPET = `import { MagiAssets } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 import { KeyTypes } from '@aioha/aioha';
 
 // The built-in search bar lets users look up any other wallet - when
@@ -849,8 +849,8 @@ import { KeyTypes } from '@aioha/aioha';
   onSuccess={(txId) => console.log('Broadcast:', txId)}
 />`;
 
-const NFT_SNIPPET = `import { MagiNftPanel } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+const NFT_SNIPPET = `import { MagiNftPanel } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 <MagiNftPanel
   aioha={aiohaInstance}
@@ -859,8 +859,8 @@ import '@vsc.eco/nft-widget/styles.css';
   onSuccess={(txId) => console.log(txId)}
 />`;
 
-const TOKEN_SNIPPET = `import { MagiTokenPanel } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+const TOKEN_SNIPPET = `import { MagiTokenPanel } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 <MagiTokenPanel
   aioha={aiohaInstance}
@@ -869,8 +869,8 @@ import '@vsc.eco/nft-widget/styles.css';
   onSuccess={(txId) => console.log(txId)}
 />`;
 
-const DEPLOY_SNIPPET = `import { MagiContractDeploy } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+const DEPLOY_SNIPPET = `import { MagiContractDeploy } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 // Single dialog: deploy wasm -> sign deploy tx -> wait for the contract
 // to be indexed -> sign init tx with the same form's name/symbol/etc.
@@ -959,8 +959,8 @@ for (const item of items) {
   console.log(item.tokenId, url ?? 'no image found');
 }`;
 
-const CUSTOM_SIGNER_SNIPPET = `import { MagiAssets } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+const CUSTOM_SIGNER_SNIPPET = `import { MagiAssets } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 <MagiAssets
   username="alice"
@@ -980,7 +980,7 @@ import '@vsc.eco/nft-widget/styles.css';
 />`;
 
 const WEB_COMPONENT_SNIPPET = `<script type="module">
-  import '@vsc.eco/nft-widget/webcomponent';
+  import '@vsc.eco/token-widget/webcomponent';
 </script>
 
 <magi-assets id="assets" username="alice"></magi-assets>
@@ -994,7 +994,7 @@ const WEB_COMPONENT_SNIPPET = `<script type="module">
 </script>`;
 
 const THEMING_SNIPPET = `// Built-in Altera dark - opt-in via the host class on any panel
-import '@vsc.eco/nft-widget/themes/altera-dark.css';
+import '@vsc.eco/token-widget/themes/altera-dark.css';
 <MagiAssets className="magi-nft-altera-host" ... />
 
 // Or override variables yourself

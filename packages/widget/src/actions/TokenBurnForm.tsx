@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { TokenAmount, type TokenInfo } from '@vsc.eco/nft-core';
+import { TokenAmount, type TokenInfo } from '@vsc.eco/token-core';
 import type { NftClient } from '@vsc.eco/token-sdk';
 import { BroadcastResult } from '../components/BroadcastResult.js';
 import { Field, TextInput } from '../components/Field.js';

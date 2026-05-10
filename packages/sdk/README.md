@@ -1,6 +1,6 @@
 # @vsc.eco/token-sdk
 
-Read providers + broadcast orchestrator + deployer client on top of [`@vsc.eco/nft-core`](../core). This is the layer the widget consumes; reach for it directly when you want full SDK functionality but no UI.
+Read providers + broadcast orchestrator + deployer client on top of [`@vsc.eco/token-core`](../core). This is the layer the widget consumes; reach for it directly when you want full SDK functionality but no UI.
 
 ## Install
 
@@ -118,7 +118,7 @@ for await (const evt of stream) {
   // evt: { stage: 'queued'|'building'|'broadcasting'|'waiting-contract'|'done'|'error', line?, contractId?, error? }
 }
 
-// Or hand it to MagiContractDeploy (in @vsc.eco/nft-widget), which
+// Or hand it to MagiContractDeploy (in @vsc.eco/token-widget), which
 // renders the stream as a stage-pill + log pane.
 
 // Find the new contract id (creator + creation timestamp filter, so you

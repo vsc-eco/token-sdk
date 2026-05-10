@@ -1,13 +1,13 @@
-# @vsc.eco/nft-core
+# @vsc.eco/token-core
 
 Pure operation builders + types for the Magi NFT (ERC-1155) and token (ERC-20) contracts. Zero runtime dependencies.
 
-This package builds Hive `custom_json` operations and the inner `vsc.call` payloads — it does NOT broadcast, query, or sign anything. Use it directly when you want full control of the signing pipeline; otherwise reach for `@vsc.eco/token-sdk` (which adds queries + a broadcast orchestrator + a deployer client) or `@vsc.eco/nft-widget` (which adds React components).
+This package builds Hive `custom_json` operations and the inner `vsc.call` payloads — it does NOT broadcast, query, or sign anything. Use it directly when you want full control of the signing pipeline; otherwise reach for `@vsc.eco/token-sdk` (which adds queries + a broadcast orchestrator + a deployer client) or `@vsc.eco/token-widget` (which adds React components).
 
 ## Install
 
 ```bash
-pnpm add @vsc.eco/nft-core
+pnpm add @vsc.eco/token-core
 ```
 
 ## Op builders
@@ -36,7 +36,7 @@ import {
   buildNftPause,
   buildNftUnpause,
   buildNftInit
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 
 const ctx = {
   contractId: 'vsc1Brvi4YZHLkocYNAFd7Gf1JpsPjzNnv4i45',
@@ -103,7 +103,7 @@ import {
   buildTokenUnpause,
   buildTokenInit,
   TokenAmount
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 
 // Tokens carry their own decimals — use TokenAmount to convert from human input.
 const amount = TokenAmount.fromDecimal('12.345', 3);
@@ -138,7 +138,7 @@ import type {
   CustomJsonOp,
   VscCall,
   VscIntent
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 ```
 
 `MAINNET_CONFIG` and `TESTNET_CONFIG` are the canonical configs the SDK uses by default. Both ship with multiple `indexerHasuraUrls` + `gqlUrls` for automatic mirror failover.

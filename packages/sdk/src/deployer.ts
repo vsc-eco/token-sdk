@@ -1,4 +1,4 @@
-import type { CustomJsonOp, MagiConfig, MagiNetwork } from '@vsc.eco/nft-core';
+import type { CustomJsonOp, MagiConfig, MagiNetwork } from '@vsc.eco/token-core';
 
 /**
  * Client for the Magi contract-deployer service. Mirrors the okinoko

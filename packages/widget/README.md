@@ -1,4 +1,4 @@
-# @vsc.eco/nft-widget
+# @vsc.eco/token-widget
 
 Embeddable Magi NFT + token panels — React component + web component. Renders the same flows as the okinoko-terminal NFT/token panel (your collections, your balances, transfer / burn / batch-transfer / mint / deploy / distribute) in a single drop-in tag.
 
@@ -7,14 +7,14 @@ For the full integration guide see the [top-level README](../../README.md). Quic
 ## Install
 
 ```bash
-pnpm add @vsc.eco/nft-widget react react-dom @aioha/aioha
+pnpm add @vsc.eco/token-widget react react-dom @aioha/aioha
 ```
 
 ## React
 
 ```tsx
-import { MagiAssets, MagiNftPanel, MagiTokenPanel } from '@vsc.eco/nft-widget';
-import '@vsc.eco/nft-widget/styles.css';
+import { MagiAssets, MagiNftPanel, MagiTokenPanel } from '@vsc.eco/token-widget';
+import '@vsc.eco/token-widget/styles.css';
 
 // Combined NFTs + tokens with a tab strip:
 <MagiAssets
@@ -41,7 +41,7 @@ import '@vsc.eco/nft-widget/styles.css';
 
 ```html
 <script type="module">
-  import '@vsc.eco/nft-widget/webcomponent';
+  import '@vsc.eco/token-widget/webcomponent';
 </script>
 
 <magi-assets id="assets" username="lordbutterfly"></magi-assets>
@@ -75,7 +75,7 @@ import {
   TokenMintForm,              // owner-only
   // Deploy
   MagiContractDeploy          // deploy + init in one dialog
-} from '@vsc.eco/nft-widget';
+} from '@vsc.eco/token-widget';
 ```
 
 Each accepts a `client` (from `createNftClient`), a `username`, the relevant item/info, and `onSuccess` / `onClose` callbacks.
@@ -101,7 +101,7 @@ When a user views a collection they own:
 ### Deploy widget
 
 ```tsx
-import { MagiContractDeploy } from '@vsc.eco/nft-widget';
+import { MagiContractDeploy } from '@vsc.eco/token-widget';
 
 <MagiContractDeploy
   client={client}
@@ -119,7 +119,7 @@ It posts a build request to `https://deploy.okinoko.io`, streams the build log v
 CSS custom properties on `.magi-nft` — see the [top-level README](../../README.md#theming) for the full variable list. Altera dark theme is opt-in:
 
 ```ts
-import '@vsc.eco/nft-widget/themes/altera-dark.css';
+import '@vsc.eco/token-widget/themes/altera-dark.css';
 // then add the host class to any panel:
 <MagiAssets className="magi-nft-altera-host" ... />
 ```

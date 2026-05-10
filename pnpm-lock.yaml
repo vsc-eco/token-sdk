@@ -5,9 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@vsc.eco/nft-core': workspace:*
+  '@vsc.eco/token-core': workspace:*
   '@vsc.eco/token-sdk': workspace:*
-  '@vsc.eco/nft-widget': workspace:*
+  '@vsc.eco/token-widget': workspace:*
 
 importers:
 
@@ -28,15 +28,15 @@ importers:
       '@aioha/aioha':
         specifier: ^1.8.2
         version: 1.8.5(typescript@5.9.3)(webextension-polyfill@0.12.0)
-      '@vsc.eco/nft-core':
+      '@vsc.eco/token-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@vsc.eco/nft-widget':
-        specifier: workspace:*
-        version: link:../../packages/widget
       '@vsc.eco/token-sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@vsc.eco/token-widget':
+        specifier: workspace:*
+        version: link:../../packages/widget
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -74,7 +74,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@vsc.eco/nft-core':
+      '@vsc.eco/token-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -93,7 +93,7 @@ importers:
       '@r2wc/react-to-web-component':
         specifier: ^2.0.3
         version: 2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@vsc.eco/nft-core':
+      '@vsc.eco/token-core':
         specifier: workspace:*
         version: link:../core
       '@vsc.eco/token-sdk':

@@ -5,7 +5,7 @@ import {
 	extractImageUrl,
 	tokenPropsKey
 } from '../src/nftProvider.js';
-import type { NftItem } from '@vsc.eco/nft-core';
+import type { NftItem } from '@vsc.eco/token-core';
 
 const realFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

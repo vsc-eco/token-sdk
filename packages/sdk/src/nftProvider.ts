@@ -8,7 +8,7 @@ import {
 	type NftMetadata,
 	type NftTemplateLink,
 	type NftTokenInfo
-} from '@vsc.eco/nft-core';
+} from '@vsc.eco/token-core';
 import { gqlFetchFailover, type GqlFetchOptions } from './graphql.js';
 
 /**

@@ -15,9 +15,9 @@
   },
   "pnpm": {
     "overrides": {
-      "@vsc.eco/nft-core": "workspace:*",
+      "@vsc.eco/token-core": "workspace:*",
       "@vsc.eco/token-sdk": "workspace:*",
-      "@vsc.eco/nft-widget": "workspace:*"
+      "@vsc.eco/token-widget": "workspace:*"
     }
   },
   "packageManager": "pnpm@10.33.0"

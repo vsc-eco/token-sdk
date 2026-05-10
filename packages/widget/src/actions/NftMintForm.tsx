@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { isValidHiveUsername, normalizeHiveAccount } from '@vsc.eco/nft-core';
+import { isValidHiveUsername, normalizeHiveAccount } from '@vsc.eco/token-core';
 import type { NftClient, NftCollection } from '@vsc.eco/token-sdk';
 import { BroadcastResult } from '../components/BroadcastResult.js';
 import { Field, TextInput } from '../components/Field.js';
