@@ -743,14 +743,14 @@ const LOCKED_SNIPPET = `// Lock to the connected user, no search input.
 // viewAccount differs from username so write actions are auto-hidden.
 <MagiAssets
   username="alice"             // optional - signer is irrelevant in read-only mode
-  viewAccount="tibfox"
+  viewAccount="diyhub"
   enableUserSearch={false}
 />
 
 // No connected wallet at all - pure read-only embed.
 // Drop into a static site to show a fixed wallet's holdings.
 <MagiAssets
-  viewAccount="tibfox"
+  viewAccount="diyhub"
   enableUserSearch={false}
 />`;
 
