@@ -15,7 +15,14 @@ export interface TokenProvider {
 	getInfo(contractId: string): Promise<TokenInfo | null>;
 	getInfos(contractIds: string[]): Promise<TokenInfo[]>;
 	getBalances(account: string): Promise<TokenBalance[]>;
-	/** Convenience: balances joined with the matching token info. */
+	/** Token contracts owned by `owner` (their `owner` field on chain). */
+	getOwnedTokens(owner: string): Promise<TokenInfo[]>;
+	/**
+	 * Convenience: union of (a) balances the account holds and (b) token
+	 * contracts the account *owns* even when their balance is zero. Owner
+	 * rows surface so the panel can offer Mint affordances on a freshly
+	 * deployed contract that hasn't issued any supply yet.
+	 */
 	getUserTokens(account: string): Promise<Array<TokenBalance & { info: TokenInfo }>>;
 }
 
@@ -128,21 +135,63 @@ export function createTokenProvider(
 			.filter((b) => b.balance > 0n);
 	}
 
+	async function getOwnedTokens(owner: string): Promise<TokenInfo[]> {
+		if (!owner) return [];
+		const ownerHive = owner.startsWith('hive:') ? owner : `hive:${owner}`;
+		const data = await gqlFetchFailover<{ rows: OverviewRow[] }>(
+			indexerUrls,
+			`query($owner: String!) {
+				rows: magi_token_overview(where: { owner: { _eq: $owner } }) { ${OVERVIEW_FRAGMENT} }
+			}`,
+			{ owner: ownerHive },
+			fetchOpts
+		);
+		return data.rows.map(rowToInfo);
+	}
+
 	async function getUserTokens(
 		account: string
 	): Promise<Array<TokenBalance & { info: TokenInfo }>> {
-		const balances = await getBalances(account);
-		if (!balances.length) return [];
-		const ids = Array.from(new Set(balances.map((b) => b.contractId)));
-		const infos = await getInfos(ids);
-		const infoByContract = new Map(infos.map((i) => [i.contractId, i]));
+		if (!account) return [];
+		const accountHive = account.startsWith('hive:') ? account : `hive:${account}`;
+		// Two parallel fetches: tokens the user holds + tokens the user
+		// owns. The union is what the panel needs to show, since a freshly
+		// deployed contract has owner=user but balance=0 and would
+		// otherwise be invisible (mint button has nowhere to render).
+		const [balances, ownedInfos] = await Promise.all([
+			getBalances(accountHive),
+			getOwnedTokens(accountHive)
+		]);
+		// Fetch info for any contract the user holds a balance in but
+		// doesn't own (i.e. wasn't already covered by getOwnedTokens).
+		const ownedById = new Map(ownedInfos.map((i) => [i.contractId, i]));
+		const balanceContractIds = balances.map((b) => b.contractId);
+		const missing = balanceContractIds.filter((id) => !ownedById.has(id));
+		const extraInfos = missing.length ? await getInfos(missing) : [];
+		const infoByContract = new Map<string, TokenInfo>(ownedById);
+		for (const i of extraInfos) infoByContract.set(i.contractId, i);
+
+		// Build the union: held-balance rows first (they're the more
+		// salient ones for the user), then any owned-but-zero rows.
 		const out: Array<TokenBalance & { info: TokenInfo }> = [];
+		const seen = new Set<string>();
 		for (const b of balances) {
 			const info = infoByContract.get(b.contractId);
-			if (info) out.push({ ...b, info });
+			if (!info) continue;
+			out.push({ ...b, info });
+			seen.add(b.contractId);
+		}
+		for (const info of ownedInfos) {
+			if (seen.has(info.contractId)) continue;
+			out.push({
+				contractId: info.contractId,
+				account: accountHive,
+				balance: 0n,
+				info
+			});
 		}
 		return out;
 	}
 
-	return { getInfo, getInfos, getBalances, getUserTokens };
+	return { getInfo, getInfos, getBalances, getOwnedTokens, getUserTokens };
 }

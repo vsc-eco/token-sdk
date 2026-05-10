@@ -230,7 +230,8 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 									<button
 										type="button"
 										className="magi-nft-icon-btn"
-										title="Send"
+										title={row.balance > 0n ? 'Send' : 'No balance to send'}
+										disabled={row.balance <= 0n}
 										onClick={() => setAction({ kind: 'send', row })}
 									>
 										<SendIcon />
@@ -238,7 +239,8 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 									<button
 										type="button"
 										className="magi-nft-icon-btn danger"
-										title="Burn"
+										title={row.balance > 0n ? 'Burn' : 'No balance to burn'}
+										disabled={row.balance <= 0n}
 										onClick={() => setAction({ kind: 'burn', row })}
 									>
 										<BurnIcon />
