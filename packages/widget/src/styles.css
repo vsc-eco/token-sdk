@@ -334,6 +334,7 @@
 	padding: 0.5rem 0.25rem 0.5rem;
 	cursor: pointer;
 	user-select: none;
+	min-width: 0;
 }
 .magi-token-group-header:hover {
 	color: var(--magi-accent);
@@ -342,6 +343,14 @@
 	font-weight: 600;
 	font-size: 0.95rem;
 	color: var(--magi-text);
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	word-break: break-word;
 }
 .magi-token-group-symbol {
 	font-size: 0.7rem;
@@ -931,4 +940,122 @@
 .magi-token-batch-row-balance {
 	font-size: 0.7rem;
 	color: var(--magi-text-muted);
+}
+
+/* ==== Responsive: tablets and below (~520px) ====
+ * The widget is most useful on phones (Hive Keychain mobile, Peakd
+ * mobile views). Tighten card padding, shrink the icon/avatar/button
+ * sizes inside list items, and let toolbar pieces wrap so the name
+ * column always has room. */
+@media (max-width: 520px) {
+	.magi-token {
+		padding: 0.85rem;
+		max-width: 100%;
+	}
+	.magi-token-bare {
+		padding: 0;
+	}
+
+	/* Toolbar (search + deploy/refresh) — already wraps via flex-wrap;
+	 * here we let the search take the full width and shrink the
+	 * action button so it fits beside it more often. */
+	.magi-token-toolbar .magi-token-search {
+		min-width: 100%;
+	}
+	.magi-token-toolbar-action {
+		padding: 0 0.6rem;
+		font-size: 0.7rem;
+	}
+
+	/* NFT collection group header — let the name take the full row,
+	 * push the badge + count + owner-action buttons onto a second line.
+	 * Without this the name was wrapping to 5+ lines on a 360px-wide
+	 * screen because the right-side cluster ate ~200px. */
+	.magi-token-group-header {
+		flex-wrap: wrap;
+		row-gap: 0.3rem;
+	}
+	.magi-token-group-name {
+		flex: 1 1 100%;
+		-webkit-line-clamp: 2;
+	}
+	.magi-token-group-count {
+		margin-left: 0.25rem;
+	}
+	.magi-token-group-symbol {
+		margin-left: 0;
+	}
+
+	/* Token row — shrink everything that hugs the edges so the
+	 * monospaced balance stays readable next to the name. */
+	.magi-token-token-row {
+		gap: 0.5rem;
+		padding: 0.6rem;
+	}
+	.magi-token-token-icon {
+		width: 30px;
+		height: 30px;
+		font-size: 0.7rem;
+	}
+	.magi-token-token-info {
+		flex: 1 1 0;
+	}
+	.magi-token-token-name {
+		font-size: 0.85rem;
+	}
+	.magi-token-token-actions {
+		gap: 0.2rem;
+		margin-left: 0.3rem;
+	}
+	.magi-token-icon-btn {
+		width: 28px;
+		height: 28px;
+	}
+
+	/* NFT tile grid — slightly narrower min so two columns still fit
+	 * on ~360px viewports. */
+	.magi-token-grid {
+		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+		gap: 0.5rem;
+	}
+}
+
+/* ==== Responsive: very narrow phones (~380px) ====
+ * At this size we sacrifice the per-row count + label to keep the
+ * action buttons reachable without horizontal scroll. */
+@media (max-width: 380px) {
+	/* Drop the "X tokens" count text; the chevron + expansion already
+	 * implies whether items are hidden. */
+	.magi-token-group-count {
+		display: none;
+	}
+
+	/* Stack the token-row balance under the name instead of pushing
+	 * it to a separate column. The action buttons keep their column. */
+	.magi-token-token-row {
+		flex-wrap: wrap;
+	}
+	.magi-token-token-info {
+		flex: 1 1 60%;
+	}
+	.magi-token-token-balance {
+		flex: 0 0 auto;
+		text-align: right;
+	}
+	.magi-token-token-balance-label {
+		display: none;
+	}
+	.magi-token-token-actions {
+		flex: 1 1 100%;
+		margin-left: 0;
+		justify-content: flex-end;
+		padding-top: 0.15rem;
+	}
+
+	.magi-token-modal {
+		padding: 0.5rem;
+	}
+	.magi-token-modal-card {
+		padding: 0.85rem;
+	}
 }
