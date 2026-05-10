@@ -45,13 +45,46 @@ export interface NftInitParams {
 	baseUri?: string;
 	trackMinted?: boolean;
 	/**
-	 * Pre-stringified `collection_metadata` blob written to contract
-	 * state. Convention from okinoko-terminal: `{ description, icon }`
-	 * for the simple case, free-form JSON otherwise. Read back by the
-	 * indexer / panel via `getStateByKeys(['collection_metadata'])`.
+	 * Optional `collection_metadata` blob. Pass either a JSON string or
+	 * a plain object - both end up on the wire as a raw JSON value
+	 * under the `metadata` key, matching what the contract's tinyjson
+	 * unmarshaler expects (it reads the raw bytes via `in.Raw()`, so
+	 * `{"metadata":"{...}"}` would be stored as the literal string
+	 * `"{...}"`, NOT as an object - hence we inject objects directly).
+	 *
+	 * Convention from okinoko-terminal's NftInitPopup:
+	 * `{description, icon}` for the simple case, free-form for custom.
 	 */
-	metadata?: string;
+	metadata?: string | Record<string, unknown>;
 }
+
+/**
+ * Convert an object-or-string metadata input into the object form the
+ * contract expects on the wire. Returns `undefined` for empties so
+ * callers can drop the key entirely.
+ */
+function toMetadataObject(
+	v: string | Record<string, unknown> | undefined
+): Record<string, unknown> | undefined {
+	if (v === undefined) return undefined;
+	if (typeof v === 'object') {
+		return Object.keys(v).length > 0 ? v : undefined;
+	}
+	const trimmed = v.trim();
+	if (!trimmed) return undefined;
+	try {
+		const parsed = JSON.parse(trimmed);
+		if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+			return parsed as Record<string, unknown>;
+		}
+	} catch {
+		/* fall through */
+	}
+	throw new Error(
+		'metadata must be a plain JSON object (got non-object or invalid JSON).'
+	);
+}
+
 export function buildNftInit(ctx: NftOpContext, p: NftInitParams): NftOpBundle {
 	const payload: Record<string, unknown> = {
 		name: p.name,
@@ -59,9 +92,8 @@ export function buildNftInit(ctx: NftOpContext, p: NftInitParams): NftOpBundle {
 		baseUri: p.baseUri ?? '',
 		trackMinted: p.trackMinted ?? false
 	};
-	if (p.metadata !== undefined && p.metadata.trim() !== '') {
-		payload.metadata = p.metadata;
-	}
+	const meta = toMetadataObject(p.metadata);
+	if (meta) payload.metadata = meta;
 	return bundle(ctx, 'init', payload);
 }
 
@@ -207,12 +239,24 @@ export function buildNftSetProperties(
 	return bundle(ctx, 'setProperties', { id: p.tokenId, properties: p.properties });
 }
 
-/** Owner-only: set the JSON metadata blob describing the whole collection. */
+/**
+ * Owner-only: set the JSON metadata blob describing the whole
+ * collection. Same wire format as `init`'s `metadata` field - the
+ * contract's tinyjson reads `metadata` as raw JSON bytes, so the
+ * payload must be `{"metadata":{...}}` with `metadata` as a raw
+ * object, NOT `{"metadata":"{...}"}` (which would store the literal
+ * stringified form including the quotes). Accepts a plain object OR
+ * a JSON string (parsed and re-injected as an object).
+ */
 export function buildNftSetCollectionMetadata(
 	ctx: NftOpContext,
-	p: { metadata: string }
+	p: { metadata: string | Record<string, unknown> }
 ): NftOpBundle {
-	return bundle(ctx, 'setCollectionMetadata', { metadata: p.metadata });
+	const meta = toMetadataObject(p.metadata);
+	if (!meta) {
+		throw new Error('setCollectionMetadata: `metadata` is required and must be a JSON object.');
+	}
+	return bundle(ctx, 'setCollectionMetadata', { metadata: meta });
 }
 
 /** Owner-only: hand the contract over to `newOwner`. */
