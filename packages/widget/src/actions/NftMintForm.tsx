@@ -234,10 +234,10 @@ export function NftMintForm({
 				Soulbound (non-transferable, set on first mint only)
 			</label>
 
-			<div className="magi-nft-tabs" style={{ marginTop: '0.4rem', marginBottom: '0.4rem' }}>
+			<div className="magi-token-tabs" style={{ marginTop: '0.4rem', marginBottom: '0.4rem' }}>
 				<button
 					type="button"
-					className={`magi-nft-tab ${propsMode === 'simple' ? 'active' : ''}`}
+					className={`magi-token-tab ${propsMode === 'simple' ? 'active' : ''}`}
 					onClick={() => switchMode('simple')}
 					disabled={submitting}
 				>
@@ -245,7 +245,7 @@ export function NftMintForm({
 				</button>
 				<button
 					type="button"
-					className={`magi-nft-tab ${propsMode === 'json' ? 'active' : ''}`}
+					className={`magi-token-tab ${propsMode === 'json' ? 'active' : ''}`}
 					onClick={() => switchMode('json')}
 					disabled={submitting}
 				>
@@ -285,7 +285,7 @@ export function NftMintForm({
 					hint="Free-form per-token properties. Stored verbatim on-chain."
 					error={jsonError ?? undefined}
 				>
-					<div className={`magi-nft-input-wrap ${jsonError ? 'error' : ''}`}>
+					<div className={`magi-token-input-wrap ${jsonError ? 'error' : ''}`}>
 						<textarea
 							value={propsJson}
 							onChange={(e) => setPropsJson((e.target as HTMLTextAreaElement).value)}
@@ -311,20 +311,20 @@ export function NftMintForm({
 			)}
 
 			{(error || validation.err) && (
-				<p className="magi-nft-status error">{error ?? validation.err}</p>
+				<p className="magi-token-status error">{error ?? validation.err}</p>
 			)}
 
 			{txId ? (
 				<>
 					<BroadcastResult txId={txId} />
-					<button type="button" className="magi-nft-submit ghost" onClick={onClose}>
+					<button type="button" className="magi-token-submit ghost" onClick={onClose}>
 						Done
 					</button>
 				</>
 			) : (
 				<button
 					type="button"
-					className="magi-nft-submit"
+					className="magi-token-submit"
 					disabled={!validation.ok || submitting}
 					onClick={handleSubmit}
 				>

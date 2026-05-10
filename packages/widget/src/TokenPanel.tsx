@@ -162,22 +162,22 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 	}
 
 	const rootClass = bare
-		? `magi-nft-bare ${className ?? ''}`.trim()
-		: `magi-nft ${className ?? ''}`.trim();
+		? `magi-token-bare ${className ?? ''}`.trim()
+		: `magi-token ${className ?? ''}`.trim();
 	return (
 		<div className={rootClass}>
 			{enableRefresh && account && (
 				<RefreshButton refreshing={refreshing} onClick={handleRefresh} />
 			)}
 			{!hideHeader && (
-				<div className="magi-nft-header">
-					<div className="magi-nft-badge">
-						<span className="magi-nft-dot" />
-						<span className="magi-nft-badge-text">
+				<div className="magi-token-header">
+					<div className="magi-token-badge">
+						<span className="magi-token-dot" />
+						<span className="magi-token-badge-text">
 							{readOnly ? 'TOKENS - read only' : 'MAGI TOKENS'}
 						</span>
 					</div>
-					<p className="magi-nft-subtitle">
+					<p className="magi-token-subtitle">
 						{readOnly
 							? `Viewing @${account?.replace(/^hive:/, '')} - actions disabled`
 							: 'Your fungible-token balances on the Magi network'}
@@ -186,7 +186,7 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 			)}
 
 			{(enableUserSearch || (enableDeploy && !readOnly && username)) && (
-				<div className="magi-nft-toolbar">
+				<div className="magi-token-toolbar">
 					{enableUserSearch && (
 						<UserSearch
 							searchInput={searchInput}
@@ -201,7 +201,7 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 					{enableDeploy && !readOnly && username && (
 						<button
 							type="button"
-							className="magi-nft-toolbar-action"
+							className="magi-token-toolbar-action"
 							title="Deploy a new token contract"
 							onClick={() => setDeployOpen(true)}
 						>
@@ -216,39 +216,39 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 			)}
 
 			{!account && (
-				<div className="magi-nft-state">Connect your Hive wallet to load tokens.</div>
+				<div className="magi-token-state">Connect your Hive wallet to load tokens.</div>
 			)}
-			{account && rows === null && !error && <div className="magi-nft-state">Loading…</div>}
-			{error && <div className="magi-nft-state magi-nft-status error">{error}</div>}
+			{account && rows === null && !error && <div className="magi-token-state">Loading…</div>}
+			{error && <div className="magi-token-state magi-token-status error">{error}</div>}
 			{account && rows && rows.length === 0 && (
-				<div className="magi-nft-state">
+				<div className="magi-token-state">
 					No token balances for @{account.replace(/^hive:/, '')}.
 				</div>
 			)}
 
-			<div className="magi-nft-token-list">
+			<div className="magi-token-token-list">
 				{rows?.map((row) => {
 					const amt = new TokenAmount(row.balance, row.info.decimals);
 					const initials = row.info.symbol.slice(0, 3).toUpperCase();
 					return (
-						<div className="magi-nft-token-row" key={row.contractId}>
-							<div className="magi-nft-token-icon">{initials}</div>
-							<div className="magi-nft-token-info">
-								<span className="magi-nft-token-name">{row.info.name}</span>
-								<span className="magi-nft-token-symbol">{row.info.symbol}</span>
+						<div className="magi-token-token-row" key={row.contractId}>
+							<div className="magi-token-token-icon">{initials}</div>
+							<div className="magi-token-token-info">
+								<span className="magi-token-token-name">{row.info.name}</span>
+								<span className="magi-token-token-symbol">{row.info.symbol}</span>
 							</div>
-							<div className="magi-nft-token-balance">
-								<div className="magi-nft-token-balance-value">
+							<div className="magi-token-token-balance">
+								<div className="magi-token-token-balance-value">
 									{amt.toDecimalStringTrimmed()}
 								</div>
-								<div className="magi-nft-token-balance-label">{row.info.symbol}</div>
+								<div className="magi-token-token-balance-label">{row.info.symbol}</div>
 							</div>
 							{!readOnly && (
-								<div className="magi-nft-token-actions">
+								<div className="magi-token-token-actions">
 									{isOwnedToken(row.info, username) && (
 										<button
 											type="button"
-											className="magi-nft-icon-btn"
+											className="magi-token-icon-btn"
 											title="Issue (mint)"
 											onClick={() => setAction({ kind: 'mint', row })}
 										>
@@ -257,7 +257,7 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 									)}
 									<button
 										type="button"
-										className="magi-nft-icon-btn"
+										className="magi-token-icon-btn"
 										title={row.balance > 0n ? 'Send' : 'No balance to send'}
 										disabled={row.balance <= 0n}
 										onClick={() => setAction({ kind: 'send', row })}
@@ -266,7 +266,7 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 									</button>
 									<button
 										type="button"
-										className="magi-nft-icon-btn danger"
+										className="magi-token-icon-btn danger"
 										title={row.balance > 0n ? 'Burn' : 'No balance to burn'}
 										disabled={row.balance <= 0n}
 										onClick={() => setAction({ kind: 'burn', row })}

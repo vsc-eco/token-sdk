@@ -92,7 +92,7 @@ import '@vsc.eco/token-widget/styles.css';
 </script>
 ```
 
-`<magi-nft-panel>` and `<magi-token-panel>` are also registered.
+`<magi-token-panel>` and `<magi-token-panel>` are also registered.
 
 ### 4. Locked / read-only viewer
 
@@ -227,9 +227,9 @@ const client = createNftClient({ aioha });
 | `enableRefresh` | `boolean` | Show a top-right refresh button. |
 | `refreshSeq` | `number` | Increment to force a re-fetch from the parent. |
 | `onSuccess` | `(txId: string) => void` | Fires after every successful broadcast in any action form. |
-| `className` | `string` | Extra class on the root element (use `magi-nft-altera-host` for the dark theme). |
+| `className` | `string` | Extra class on the root element (use `magi-token-light-host` to opt into the light theme). |
 | `hideHeader` | `boolean` | Drop the badge + subtitle. |
-| `bare` | `boolean` | Skip the outer card chrome — use when nesting inside another `.magi-nft` host. |
+| `bare` | `boolean` | Skip the outer card chrome — use when nesting inside another `.magi-token` host. |
 
 ### `<MagiContractDeploy>`
 
@@ -244,30 +244,30 @@ const client = createNftClient({ aioha });
 
 ## Theming
 
-Both widgets use CSS custom properties scoped to `.magi-nft`. Override any `--magi-*` variable to match your host app — the variable naming matches `@vsc.eco/crosschain-widget` so a single host theme block styles both.
+Both widgets use CSS custom properties scoped to `.magi-token`. Override any `--magi-*` variable to match your host app — the variable naming matches `@vsc.eco/crosschain-widget` so a single host theme block styles both.
 
-Default is a neutral light theme. An Altera dark theme is available:
+**Default is the Altera dark theme** — drop the panel into your app and you get the polished Magi look out of the box. A light theme is bundled as an opt-in:
 
 ```ts
-import '@vsc.eco/token-widget/themes/altera-dark.css';
-// then:
-<MagiAssets className="magi-nft-altera-host" ... />
+import '@vsc.eco/token-widget/themes/light.css';
+// then add the host class to any panel (or any ancestor):
+<MagiAssets className="magi-token-light-host" ... />
 ```
 
-### Variables
+### Variables (Altera dark defaults)
 
 | Variable | Default | Description |
 |---|---|---|
-| `--magi-card-bg` | `#ffffff` | Card background |
-| `--magi-card-border` | `#e2e5e9` | Card border |
-| `--magi-card-shadow` | subtle shadow | Card shadow |
-| `--magi-accent` | `#4f46e5` | Primary accent (buttons, highlights) |
-| `--magi-accent-hover` | `#4338ca` | Accent hover |
-| `--magi-green` / `--magi-red` | `#16a34a` / `#dc2626` | Success / error |
-| `--magi-text` / `--magi-text-secondary` / `--magi-text-muted` | `#111827` / `#4b5563` / `#9ca3af` | Text scale |
-| `--magi-field-bg` / `--magi-field-border` | `#f3f4f6` / `#e5e7eb` | Input fields |
-| `--magi-tile-bg` / `--magi-tile-bg-hover` | `#ffffff` / `#f9fafb` | NFT tile + token row |
-| `--magi-font` | Inter, system-ui | Font family |
+| `--magi-card-bg` | translucent gradient | Card background |
+| `--magi-card-border` | `rgba(255,255,255,0.15)` | Card border |
+| `--magi-card-shadow` | layered drop + inner highlights | Card shadow |
+| `--magi-accent` | `#6f6af8` | Primary accent (buttons, highlights) |
+| `--magi-accent-hover` | `#7e74ff` | Accent hover |
+| `--magi-green` / `--magi-red` | `#00c218` / `#e31337` | Success / error |
+| `--magi-text` / `--magi-text-secondary` / `--magi-text-muted` | `#ffffff` / `#c0c4cc` / `#828a93` | Text scale |
+| `--magi-field-bg` / `--magi-field-border` | `rgba(0,0,0,0.25)` / `rgba(255,255,255,0.08)` | Input fields |
+| `--magi-tile-bg` / `--magi-tile-bg-hover` | `rgba(0,0,0,0.2)` / `rgba(255,255,255,0.04)` | NFT tile + token row |
+| `--magi-font` | Nunito Sans, system-ui | Font family |
 
 ## Demo
 

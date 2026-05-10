@@ -82,18 +82,18 @@ export function MagiAssets(props: MagiNftPanelProps) {
 	const showDeployButton = enableDeploy && !readOnly && !!props.username;
 
 	return (
-		<div className={`magi-nft ${props.className ?? ''}`}>
+		<div className={`magi-token ${props.className ?? ''}`}>
 			{enableRefresh && (
 				<RefreshButton refreshing={refreshing} onClick={handleRefresh} />
 			)}
-			<div className="magi-nft-header">
-				<div className="magi-nft-badge">
-					<span className="magi-nft-dot" />
-					<span className="magi-nft-badge-text">
+			<div className="magi-token-header">
+				<div className="magi-token-badge">
+					<span className="magi-token-dot" />
+					<span className="magi-token-badge-text">
 						{readOnly ? 'ASSETS - read only' : 'MAGI ASSETS'}
 					</span>
 				</div>
-				<p className="magi-nft-subtitle">
+				<p className="magi-token-subtitle">
 					{readOnly && displayBare
 						? `Viewing @${displayBare} - actions disabled`
 						: 'Your NFTs and tokens on Magi'}
@@ -101,7 +101,7 @@ export function MagiAssets(props: MagiNftPanelProps) {
 			</div>
 
 			{(enableUserSearch || showDeployButton) && (
-				<div className="magi-nft-toolbar">
+				<div className="magi-token-toolbar">
 					{enableUserSearch && (
 						<UserSearch
 							searchInput={searchInput}
@@ -116,7 +116,7 @@ export function MagiAssets(props: MagiNftPanelProps) {
 					{showDeployButton && (
 						<button
 							type="button"
-							className="magi-nft-toolbar-action"
+							className="magi-token-toolbar-action"
 							title="Deploy a new collection or token"
 							onClick={() => setDeployOpen(true)}
 						>
@@ -130,17 +130,17 @@ export function MagiAssets(props: MagiNftPanelProps) {
 				</div>
 			)}
 
-			<div className="magi-nft-tabs">
+			<div className="magi-token-tabs">
 				<button
 					type="button"
-					className={`magi-nft-tab ${tab === 'nfts' ? 'active' : ''}`}
+					className={`magi-token-tab ${tab === 'nfts' ? 'active' : ''}`}
 					onClick={() => setTab('nfts')}
 				>
 					NFTs
 				</button>
 				<button
 					type="button"
-					className={`magi-nft-tab ${tab === 'tokens' ? 'active' : ''}`}
+					className={`magi-token-tab ${tab === 'tokens' ? 'active' : ''}`}
 					onClick={() => setTab('tokens')}
 				>
 					Tokens

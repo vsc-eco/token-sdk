@@ -14,8 +14,9 @@ import {
 	TokenAmount
 } from '@vsc.eco/token-sdk';
 
-// Optional dark theme - toggled at runtime in the demo.
-import '@vsc.eco/token-widget/themes/altera-dark.css';
+// The widget defaults to Altera dark; this opt-in stylesheet adds the
+// light theme so the demo's theme toggle can flip individual panels.
+import '@vsc.eco/token-widget/themes/light.css';
 
 type Theme = 'light' | 'dark';
 
@@ -80,7 +81,7 @@ interface ResolvedImage {
 function DemoApp() {
 	const [aioha, setAioha] = useState<Aioha | null>(null);
 	const [username, setUsername] = useState<string | undefined>(undefined);
-	const [theme, setTheme] = useState<Theme>('light');
+	const [theme, setTheme] = useState<Theme>('dark');
 	const [lastTx, setLastTx] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -123,7 +124,8 @@ function DemoApp() {
 		setUsername(undefined);
 	}
 
-	const themedClass = theme === 'dark' ? 'magi-nft-altera-host' : '';
+	// Dark is the widget default — light is the opt-in via magi-token-light-host.
+	const themedClass = theme === 'light' ? 'magi-token-light-host' : '';
 	const connected = !!username;
 	const [deployOpen, setDeployOpen] = useState(false);
 	const sectionIds = useMemo(() => SECTIONS.map((s) => s.id), []);
@@ -255,7 +257,7 @@ function DemoApp() {
 					Altera dark
 				</button>
 				<span style={{ color: '#64748b' }}>
-					- driven by CSS custom properties on <code>.magi-nft</code>
+					- driven by CSS custom properties on <code>.magi-token</code>
 				</span>
 			</div>
 
@@ -433,7 +435,7 @@ function DemoApp() {
 			</p>
 			<div className="live">
 				<button
-					className="magi-nft-submit"
+					className="magi-token-submit"
 					style={{ maxWidth: 280 }}
 					disabled={!connected}
 					onClick={() => setDeployOpen(true)}
@@ -540,7 +542,7 @@ function DemoApp() {
 			<h2 id="web-component">Web component (vanilla JS / Vue / Svelte)</h2>
 			<p>
 				Three custom elements register on import:{' '}
-				<code>&lt;magi-nft-panel&gt;</code>,{' '}
+				<code>&lt;magi-token-panel&gt;</code>,{' '}
 				<code>&lt;magi-token-panel&gt;</code>, <code>&lt;magi-assets&gt;</code>.
 				String, number, and boolean attributes pass through normally - the
 				Aioha instance and any callback props must be set as JS properties on
@@ -556,11 +558,12 @@ function DemoApp() {
 			<p>
 				Both panels expose the same CSS custom properties used by{' '}
 				<code>@vsc.eco/crosschain-widget</code>, so a single host theme block
-				styles the swap widget and the NFT widget consistently. Override any{' '}
-				<code>--magi-*</code> variable on <code>.magi-nft</code> (or any
-				ancestor). The <code>magi-nft-altera-host</code> class on a panel opts
-				it into the bundled Altera dark theme - switch via the toggle at the
-				top of this page.
+				styles the swap widget and the token widget consistently. Override any{' '}
+				<code>--magi-*</code> variable on <code>.magi-token</code> (or any
+				ancestor). The widget defaults to <strong>Altera dark</strong>; opt into
+				light by importing <code>@vsc.eco/token-widget/themes/light.css</code>{' '}
+				and adding the <code>magi-token-light-host</code> class to the panel
+				(or any ancestor) - switch via the toggle at the top of this page.
 			</p>
 			<pre className="code">
 				<Code>{THEMING_SNIPPET}</Code>
@@ -993,12 +996,14 @@ const WEB_COMPONENT_SNIPPET = `<script type="module">
   el.onSuccess = (txId) => console.log(txId);
 </script>`;
 
-const THEMING_SNIPPET = `// Built-in Altera dark - opt-in via the host class on any panel
-import '@vsc.eco/token-widget/themes/altera-dark.css';
-<MagiAssets className="magi-nft-altera-host" ... />
+const THEMING_SNIPPET = `// The widget ships with Altera dark out of the box - no extra import needed.
+// Opt into light by importing the bundled light stylesheet and adding
+// magi-token-light-host on the panel (or any ancestor):
+import '@vsc.eco/token-widget/themes/light.css';
+<MagiAssets className="magi-token-light-host" ... />
 
-// Or override variables yourself
-.my-host .magi-nft {
+// Or override variables yourself - works for both themes
+.my-host .magi-token {
   --magi-card-bg: #fafafa;
   --magi-accent: #ff5e3a;
   --magi-accent-hover: #f04a23;

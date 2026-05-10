@@ -1,28 +1,34 @@
-/* Magi NFT widget - themeable via CSS custom properties.
+/* Magi token widget - themeable via CSS custom properties.
    Mirrors @vsc.eco/crosschain-widget naming so a single host theme block
-   styles both swap and NFT widgets. Override any --magi-* variable on
-   .magi-nft (or a parent) to match your host app. */
+   styles both swap and token widgets. Override any --magi-* variable on
+   .magi-token (or a parent) to match your host app.
 
-.magi-nft {
-	/* ==== Neutral light-theme defaults ==== */
-	--magi-card-bg: #ffffff;
-	--magi-card-border: #e2e5e9;
-	--magi-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+   The default theme is Altera dark. Hosts that want light can opt in
+   with the `magi-token-light-host` class on the panel (or any ancestor),
+   or override the variables directly. */
+
+.magi-token {
+	/* ==== Default theme: Altera dark ==== */
+	--magi-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+	--magi-card-border: rgba(255, 255, 255, 0.15);
+	--magi-card-shadow:
+		0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3),
+		inset 1px 0 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.2);
 	--magi-card-radius: 20px;
-	--magi-accent: #4f46e5;
-	--magi-accent-hover: #4338ca;
-	--magi-accent-light: rgba(79, 70, 229, 0.08);
-	--magi-green: #16a34a;
-	--magi-red: #dc2626;
-	--magi-text: #111827;
-	--magi-text-secondary: #4b5563;
-	--magi-text-muted: #9ca3af;
-	--magi-field-bg: #f3f4f6;
-	--magi-field-border: #e5e7eb;
+	--magi-accent: #6f6af8;
+	--magi-accent-hover: #7e74ff;
+	--magi-accent-light: rgba(111, 106, 248, 0.18);
+	--magi-green: #00c218;
+	--magi-red: #e31337;
+	--magi-text: #ffffff;
+	--magi-text-secondary: #c0c4cc;
+	--magi-text-muted: #828a93;
+	--magi-field-bg: rgba(0, 0, 0, 0.25);
+	--magi-field-border: rgba(255, 255, 255, 0.08);
 	--magi-input-bg: transparent;
-	--magi-tile-bg: #ffffff;
-	--magi-tile-bg-hover: #f9fafb;
-	--magi-font: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+	--magi-tile-bg: rgba(0, 0, 0, 0.2);
+	--magi-tile-bg-hover: rgba(255, 255, 255, 0.04);
+	--magi-font: 'Nunito Sans', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 
 	background: var(--magi-card-bg);
 	border: 1px solid var(--magi-card-border);
@@ -39,36 +45,36 @@
 	position: relative;
 }
 
-.magi-nft *,
-.magi-nft *::before,
-.magi-nft *::after {
+.magi-token *,
+.magi-token *::before,
+.magi-token *::after {
 	box-sizing: border-box;
 }
 
-/* Bare wrapper - used when nesting the panel inside another .magi-nft host
+/* Bare wrapper - used when nesting the panel inside another .magi-token host
  * (e.g. MagiAssets). Inherits all --magi-* vars from the parent without
  * drawing a second card. */
-.magi-nft-bare {
+.magi-token-bare {
 	display: flex;
 	flex-direction: column;
 	gap: 0;
 	position: relative;
 }
-.magi-nft-bare *,
-.magi-nft-bare *::before,
-.magi-nft-bare *::after {
+.magi-token-bare *,
+.magi-token-bare *::before,
+.magi-token-bare *::after {
 	box-sizing: border-box;
 }
 
 /* ==== Header ==== */
-.magi-nft-header {
+.magi-token-header {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 0.4rem;
 	margin-bottom: 1rem;
 }
-.magi-nft-badge {
+.magi-token-badge {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.4rem;
@@ -77,34 +83,34 @@
 	border-radius: 2rem;
 	background: var(--magi-accent-light);
 }
-.magi-nft-dot {
+.magi-token-dot {
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
 	background: var(--magi-green);
 	box-shadow: 0 0 6px 1px rgba(22, 163, 74, 0.4);
-	animation: magi-nft-dot-pulse 2s ease-in-out infinite;
+	animation: magi-token-dot-pulse 2s ease-in-out infinite;
 }
-@keyframes magi-nft-dot-pulse {
+@keyframes magi-token-dot-pulse {
 	0%, 100% { box-shadow: 0 0 4px 1px rgba(22, 163, 74, 0.25); }
 	50%      { box-shadow: 0 0 10px 3px rgba(22, 163, 74, 0.55); }
 }
 
 /* ==== Circular progress spinner (deploy "polling indexer" stage) ==== */
-.magi-nft-spinner {
+.magi-token-spinner {
 	width: 28px;
 	height: 28px;
 	border: 3px solid var(--magi-field-border);
 	border-top-color: var(--magi-accent);
 	border-radius: 50%;
-	animation: magi-nft-spin 0.85s linear infinite;
+	animation: magi-token-spin 0.85s linear infinite;
 	flex-shrink: 0;
 }
-@keyframes magi-nft-spin {
+@keyframes magi-token-spin {
 	from { transform: rotate(0deg); }
 	to   { transform: rotate(360deg); }
 }
-.magi-nft-spinner-row {
+.magi-token-spinner-row {
 	display: flex;
 	align-items: center;
 	gap: 0.6rem;
@@ -115,13 +121,13 @@
 	color: var(--magi-text-secondary);
 	font-size: 0.8rem;
 }
-.magi-nft-badge-text {
+.magi-token-badge-text {
 	font-size: 0.8rem;
 	font-weight: 700;
 	letter-spacing: 0.1em;
 	color: var(--magi-text);
 }
-.magi-nft-subtitle {
+.magi-token-subtitle {
 	font-size: 0.75rem;
 	color: var(--magi-text-secondary);
 	margin: 0;
@@ -129,11 +135,11 @@
 
 /* ==== Refresh button (top-right of every panel) ====
  * Absolutely positioned inside the panel card so it sits in the corner
- * without consuming a header slot. The .magi-nft / .magi-nft-bare
+ * without consuming a header slot. The .magi-token / .magi-token-bare
  * containers are both `position: relative`, which anchors this. The
  * icon spins while the panel is reloading; disabled state prevents
  * queueing multiple refetches by mashing the button. */
-.magi-nft-refresh-btn {
+.magi-token-refresh-btn {
 	position: absolute;
 	top: 0.85rem;
 	right: 0.85rem;
@@ -151,20 +157,20 @@
 	transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 	z-index: 2;
 }
-.magi-nft-refresh-btn:hover:not(:disabled) {
+.magi-token-refresh-btn:hover:not(:disabled) {
 	color: var(--magi-accent);
 	border-color: var(--magi-accent);
 	background: var(--magi-accent-light);
 }
-.magi-nft-refresh-btn:disabled {
+.magi-token-refresh-btn:disabled {
 	cursor: progress;
 }
-.magi-nft-refresh-btn svg.spinning {
-	animation: magi-nft-spin 0.85s linear infinite;
+.magi-token-refresh-btn svg.spinning {
+	animation: magi-token-spin 0.85s linear infinite;
 }
-.magi-nft-bare > .magi-nft-refresh-btn {
+.magi-token-bare > .magi-token-refresh-btn {
 	/* Hide the duplicate when nested inside MagiAssets (the parent
-	 * .magi-nft already shows its own button). */
+	 * .magi-token already shows its own button). */
 	display: none;
 }
 
@@ -173,19 +179,19 @@
  * (currently just "Deploy") into a single row sitting between the panel
  * header and the content. Search stretches to fill, action buttons hug
  * the right edge. Wraps to two rows on narrow viewports. */
-.magi-nft-toolbar {
+.magi-token-toolbar {
 	display: flex;
 	align-items: stretch;
 	gap: 0.4rem;
 	margin: 0 0 0.85rem;
 	flex-wrap: wrap;
 }
-.magi-nft-toolbar .magi-nft-search {
+.magi-token-toolbar .magi-token-search {
 	flex: 1;
 	min-width: 200px;
 	margin: 0;
 }
-.magi-nft-toolbar-action {
+.magi-token-toolbar-action {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.35rem;
@@ -203,13 +209,13 @@
 	white-space: nowrap;
 	transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.magi-nft-toolbar-action:hover {
+.magi-token-toolbar-action:hover {
 	background: var(--magi-accent-hover);
 	border-color: var(--magi-accent-hover);
 }
 
 /* ==== User search row ==== */
-.magi-nft-search {
+.magi-token-search {
 	display: flex;
 	align-items: center;
 	gap: 0.4rem;
@@ -220,12 +226,12 @@
 	border-radius: 10px;
 	font-family: var(--magi-font);
 }
-.magi-nft-search-icon {
+.magi-token-search-icon {
 	color: var(--magi-text-muted);
 	margin-left: 0.2rem;
 	flex-shrink: 0;
 }
-.magi-nft-search input {
+.magi-token-search input {
 	flex: 1;
 	min-width: 0;
 	background: transparent;
@@ -236,10 +242,10 @@
 	font-size: 0.85rem;
 	padding: 0.25rem 0.4rem;
 }
-.magi-nft-search input::placeholder {
+.magi-token-search input::placeholder {
 	color: var(--magi-text-muted);
 }
-.magi-nft-search button {
+.magi-token-search button {
 	padding: 0.3rem 0.7rem;
 	border-radius: 6px;
 	font-family: inherit;
@@ -253,20 +259,20 @@
 	background: transparent;
 	color: var(--magi-text-secondary);
 }
-.magi-nft-search button:hover:not(:disabled) {
+.magi-token-search button:hover:not(:disabled) {
 	color: var(--magi-text);
 	border-color: var(--magi-text-muted);
 }
-.magi-nft-search button.primary {
+.magi-token-search button.primary {
 	background: var(--magi-accent);
 	color: #ffffff;
 	border-color: var(--magi-accent);
 }
-.magi-nft-search button.primary:hover:not(:disabled) {
+.magi-token-search button.primary:hover:not(:disabled) {
 	background: var(--magi-accent-hover);
 	border-color: var(--magi-accent-hover);
 }
-.magi-nft-search-status {
+.magi-token-search-status {
 	font-size: 0.72rem;
 	color: var(--magi-accent);
 	font-weight: 600;
@@ -275,13 +281,13 @@
 }
 
 /* ==== Tab strip ==== */
-.magi-nft-tabs {
+.magi-token-tabs {
 	display: flex;
 	gap: 0;
 	margin-bottom: 1rem;
 	border-bottom: 1px solid var(--magi-field-border);
 }
-.magi-nft-tab {
+.magi-token-tab {
 	flex: 1;
 	padding: 0.5rem 0.75rem;
 	background: transparent;
@@ -294,20 +300,20 @@
 	cursor: pointer;
 	transition: color 0.15s ease, border-color 0.15s ease;
 }
-.magi-nft-tab:hover:not(.active):not(:disabled) {
+.magi-token-tab:hover:not(.active):not(:disabled) {
 	color: var(--magi-text);
 }
-.magi-nft-tab.active {
+.magi-token-tab.active {
 	color: var(--magi-accent);
 	border-bottom-color: var(--magi-accent);
 }
-.magi-nft-tab:disabled {
+.magi-token-tab:disabled {
 	opacity: 0.4;
 	cursor: not-allowed;
 }
 
 /* ==== Empty / loading states ==== */
-.magi-nft-state {
+.magi-token-state {
 	padding: 2rem 1rem;
 	text-align: center;
 	color: var(--magi-text-muted);
@@ -315,13 +321,13 @@
 }
 
 /* ==== Collection header (group divider) ==== */
-.magi-nft-group {
+.magi-token-group {
 	margin-top: 0.75rem;
 }
-.magi-nft-group:first-of-type {
+.magi-token-group:first-of-type {
 	margin-top: 0;
 }
-.magi-nft-group-header {
+.magi-token-group-header {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -329,15 +335,15 @@
 	cursor: pointer;
 	user-select: none;
 }
-.magi-nft-group-header:hover {
+.magi-token-group-header:hover {
 	color: var(--magi-accent);
 }
-.magi-nft-group-name {
+.magi-token-group-name {
 	font-weight: 600;
 	font-size: 0.95rem;
 	color: var(--magi-text);
 }
-.magi-nft-group-symbol {
+.magi-token-group-symbol {
 	font-size: 0.7rem;
 	color: var(--magi-text-muted);
 	letter-spacing: 0.04em;
@@ -346,22 +352,22 @@
 	border: 1px solid var(--magi-field-border);
 	border-radius: 1rem;
 }
-.magi-nft-group-count {
+.magi-token-group-count {
 	margin-left: auto;
 	font-size: 0.75rem;
 	color: var(--magi-text-muted);
 }
-.magi-nft-group-chevron {
+.magi-token-group-chevron {
 	color: var(--magi-text-muted);
 	transition: transform 0.15s ease;
 }
-.magi-nft-group-chevron.expanded {
+.magi-token-group-chevron.expanded {
 	transform: rotate(90deg);
 }
 /* Circular icon shown between the chevron and the collection name -
  * sourced from collection_metadata.image. Hidden via JS onError when
  * the URL is broken; the collection name remains as the visible label. */
-.magi-nft-group-icon {
+.magi-token-group-icon {
 	width: 22px;
 	height: 22px;
 	border-radius: 50%;
@@ -372,13 +378,13 @@
 }
 
 /* ==== Tile grid ==== */
-.magi-nft-grid {
+.magi-token-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 	gap: 0.6rem;
 	margin-top: 0.5rem;
 }
-.magi-nft-tile {
+.magi-token-tile {
 	display: flex;
 	flex-direction: column;
 	background: var(--magi-tile-bg);
@@ -388,15 +394,15 @@
 	cursor: pointer;
 	transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.05s ease;
 }
-.magi-nft-tile:hover {
+.magi-token-tile:hover {
 	border-color: var(--magi-accent);
 	background: var(--magi-tile-bg-hover);
 }
-.magi-nft-tile.selected {
+.magi-token-tile.selected {
 	border-color: var(--magi-accent);
 	box-shadow: 0 0 0 1px var(--magi-accent-light);
 }
-.magi-nft-tile-image {
+.magi-token-tile-image {
 	aspect-ratio: 1 / 1;
 	background: var(--magi-field-bg);
 	border-radius: 8px;
@@ -406,12 +412,12 @@
 	overflow: hidden;
 	margin-bottom: 0.4rem;
 }
-.magi-nft-tile-image img {
+.magi-token-tile-image img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
-.magi-nft-tile-image-placeholder {
+.magi-token-tile-image-placeholder {
 	font-size: 0.65rem;
 	color: var(--magi-text-muted);
 	letter-spacing: 0.04em;
@@ -421,13 +427,13 @@
 /* A regular tile that opens an expansion modal on click. The "stack" pseudo-
  * element is a thin offset rectangle behind the image that telegraphs the
  * underlying multiplicity without taking real estate from the artwork. */
-.magi-nft-template-tile {
+.magi-token-template-tile {
 	position: relative;
 }
-.magi-nft-template-tile .magi-nft-tile-image {
+.magi-token-template-tile .magi-token-tile-image {
 	position: relative;
 }
-.magi-nft-template-stack {
+.magi-token-template-stack {
 	position: absolute;
 	right: -4px;
 	bottom: -4px;
@@ -439,13 +445,13 @@
 	z-index: -1;
 	pointer-events: none;
 }
-.magi-nft-template-tile .magi-nft-tile-tag {
+.magi-token-template-tile .magi-token-tile-tag {
 	background: var(--magi-accent);
 	color: #ffffff;
 }
 
 /* ==== Template expansion modal rows ==== */
-.magi-nft-template-item {
+.magi-token-template-item {
 	display: flex;
 	align-items: center;
 	gap: 0.6rem;
@@ -454,7 +460,7 @@
 	border-radius: 10px;
 	background: var(--magi-tile-bg);
 }
-.magi-nft-template-item-img {
+.magi-token-template-item-img {
 	width: 44px;
 	height: 44px;
 	border-radius: 8px;
@@ -465,27 +471,27 @@
 	align-items: center;
 	justify-content: center;
 }
-.magi-nft-template-item-img.fallback {
+.magi-token-template-item-img.fallback {
 	background: var(--magi-accent-light);
 }
-.magi-nft-template-item-img img {
+.magi-token-template-item-img img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
-.magi-nft-template-item-img.fallback img {
+.magi-token-template-item-img.fallback img {
 	object-fit: contain;
 	padding: 18%;
 	opacity: 0.7;
 }
-.magi-nft-template-item-info {
+.magi-token-template-item-info {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	flex: 1;
 	min-width: 0;
 }
-.magi-nft-template-item-id {
+.magi-token-template-item-id {
 	font-size: 0.85rem;
 	color: var(--magi-text);
 	font-family: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -493,31 +499,31 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.magi-nft-template-item-meta {
+.magi-token-template-item-meta {
 	font-size: 0.7rem;
 	color: var(--magi-text-muted);
 }
-.magi-nft-template-item-actions {
+.magi-token-template-item-actions {
 	display: flex;
 	gap: 0.3rem;
 }
 /* Fallback Magi-logo state - used when no image was resolved or the
  * resolved <img> failed to load. Pad the logo so it doesn't fill edge
  * to edge, and dim it so it reads as a placeholder, not a real NFT. */
-.magi-nft-tile-image.fallback {
+.magi-token-tile-image.fallback {
 	background: var(--magi-accent-light);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	padding: 14%;
 }
-.magi-nft-tile-fallback-img {
+.magi-token-tile-fallback-img {
 	width: 100% !important;
 	height: 100% !important;
 	object-fit: contain !important;
 	opacity: 0.7;
 }
-.magi-nft-tile-id {
+.magi-token-tile-id {
 	font-size: 0.8rem;
 	color: var(--magi-text);
 	font-weight: 500;
@@ -526,7 +532,7 @@
 	white-space: nowrap;
 	font-family: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.magi-nft-tile-row {
+.magi-token-tile-row {
 	display: flex;
 	justify-content: space-between;
 	align-items: baseline;
@@ -534,11 +540,11 @@
 	font-size: 0.7rem;
 	color: var(--magi-text-muted);
 }
-.magi-nft-tile-balance {
+.magi-token-tile-balance {
 	color: var(--magi-text-secondary);
 	font-weight: 600;
 }
-.magi-nft-tile-tag {
+.magi-token-tile-tag {
 	font-size: 0.6rem;
 	padding: 0.1rem 0.35rem;
 	border-radius: 1rem;
@@ -550,12 +556,12 @@
 }
 
 /* ==== Token list (TokenPanel) ==== */
-.magi-nft-token-list {
+.magi-token-token-list {
 	display: flex;
 	flex-direction: column;
 	gap: 0.4rem;
 }
-.magi-nft-token-row {
+.magi-token-token-row {
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
@@ -565,10 +571,10 @@
 	border-radius: 12px;
 	transition: border-color 0.15s ease;
 }
-.magi-nft-token-row:hover {
+.magi-token-token-row:hover {
 	border-color: var(--magi-accent);
 }
-.magi-nft-token-icon {
+.magi-token-token-icon {
 	width: 36px;
 	height: 36px;
 	border-radius: 50%;
@@ -581,13 +587,13 @@
 	font-size: 0.85rem;
 	flex-shrink: 0;
 }
-.magi-nft-token-info {
+.magi-token-token-info {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
 }
-.magi-nft-token-name {
+.magi-token-token-name {
 	font-size: 0.9rem;
 	color: var(--magi-text);
 	font-weight: 600;
@@ -595,32 +601,32 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.magi-nft-token-symbol {
+.magi-token-token-symbol {
 	font-size: 0.7rem;
 	color: var(--magi-text-muted);
 }
-.magi-nft-token-balance {
+.magi-token-token-balance {
 	margin-left: auto;
 	text-align: right;
 }
-.magi-nft-token-balance-value {
+.magi-token-token-balance-value {
 	font-size: 0.95rem;
 	font-weight: 600;
 	color: var(--magi-text);
 	font-family: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.magi-nft-token-balance-label {
+.magi-token-token-balance-label {
 	font-size: 0.65rem;
 	color: var(--magi-text-muted);
 }
-.magi-nft-token-actions {
+.magi-token-token-actions {
 	display: flex;
 	gap: 0.3rem;
 	margin-left: 0.5rem;
 }
 
 /* ==== Action menu / icon buttons ==== */
-.magi-nft-icon-btn {
+.magi-token-icon-btn {
 	width: 32px;
 	height: 32px;
 	padding: 0;
@@ -634,16 +640,16 @@
 	justify-content: center;
 	transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 }
-.magi-nft-icon-btn:hover:not(:disabled) {
+.magi-token-icon-btn:hover:not(:disabled) {
 	color: var(--magi-accent);
 	border-color: var(--magi-accent);
 	background: var(--magi-accent-light);
 }
-.magi-nft-icon-btn:disabled {
+.magi-token-icon-btn:disabled {
 	opacity: 0.4;
 	cursor: not-allowed;
 }
-.magi-nft-icon-btn.danger:hover:not(:disabled) {
+.magi-token-icon-btn.danger:hover:not(:disabled) {
 	color: var(--magi-red);
 	border-color: var(--magi-red);
 	background: rgba(220, 38, 38, 0.08);
@@ -651,14 +657,14 @@
 
 /* ==== Modal (action popup) ====
  * Viewport-fixed rather than panel-absolute. The previous absolute version
- * scoped the modal to its closest positioned ancestor (.magi-nft / -bare),
+ * scoped the modal to its closest positioned ancestor (.magi-token / -bare),
  * which works for the always-tall QuickSwap widget but clips badly here:
  * a TokenPanel with one row leaves the modal a few hundred pixels of
  * height, then `max-height: calc(100% - 2rem)` chops the card. Fixed
  * positioning sizes against the viewport, which is always large enough,
  * and matches what users expect from "send tokens" / "transfer NFT" flows.
  * z-index sits well above sticky headers but below toast notifications. */
-.magi-nft-modal {
+.magi-token-modal {
 	position: fixed;
 	inset: 0;
 	display: flex;
@@ -669,7 +675,7 @@
 	backdrop-filter: blur(3px);
 	z-index: 9999;
 }
-.magi-nft-modal-card {
+.magi-token-modal-card {
 	width: 100%;
 	max-width: 380px;
 	background: var(--magi-card-bg);
@@ -684,7 +690,7 @@
 	max-height: calc(100vh - 2rem);
 	overflow-y: auto;
 }
-.magi-nft-modal-title {
+.magi-token-modal-title {
 	margin: 0;
 	font-weight: 600;
 	font-size: 1.05rem;
@@ -693,7 +699,7 @@
 	justify-content: space-between;
 	gap: 0.5rem;
 }
-.magi-nft-modal-close {
+.magi-token-modal-close {
 	background: transparent;
 	border: 0;
 	color: var(--magi-text-muted);
@@ -702,30 +708,30 @@
 	padding: 0.1rem 0.3rem;
 	border-radius: 6px;
 }
-.magi-nft-modal-close:hover {
+.magi-token-modal-close:hover {
 	color: var(--magi-text);
 	background: var(--magi-field-bg);
 }
-.magi-nft-modal-subtitle {
+.magi-token-modal-subtitle {
 	font-size: 0.8rem;
 	color: var(--magi-text-muted);
 	margin: -0.3rem 0 0;
 }
 
 /* ==== Form fields (in modals) ==== */
-.magi-nft-field {
+.magi-token-field {
 	display: flex;
 	flex-direction: column;
 	gap: 0.3rem;
 }
-.magi-nft-field-label {
+.magi-token-field-label {
 	font-size: 0.7rem;
 	font-weight: 600;
 	color: var(--magi-text-secondary);
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 }
-.magi-nft-input-wrap {
+.magi-token-input-wrap {
 	display: flex;
 	align-items: center;
 	background: var(--magi-field-bg);
@@ -734,13 +740,13 @@
 	padding: 0.65rem 0.75rem;
 	transition: border-color 0.15s ease;
 }
-.magi-nft-input-wrap.focused {
+.magi-token-input-wrap.focused {
 	border-color: var(--magi-accent);
 }
-.magi-nft-input-wrap.error {
+.magi-token-input-wrap.error {
 	border-color: var(--magi-red);
 }
-.magi-nft-input-wrap input {
+.magi-token-input-wrap input {
 	flex: 1;
 	background: transparent;
 	border: 0;
@@ -750,10 +756,10 @@
 	outline: none;
 	font-family: inherit;
 }
-.magi-nft-input-wrap input::placeholder {
+.magi-token-input-wrap input::placeholder {
 	color: var(--magi-text-muted);
 }
-.magi-nft-field-hint {
+.magi-token-field-hint {
 	font-size: 0.65rem;
 	color: var(--magi-text-muted);
 	margin: 0;
@@ -761,14 +767,14 @@
 }
 
 /* ==== Toggle (segmented) ==== */
-.magi-nft-toggle {
+.magi-token-toggle {
 	display: inline-flex;
 	border: 1px solid var(--magi-field-border);
 	border-radius: 999px;
 	padding: 2px;
 	background: var(--magi-field-bg);
 }
-.magi-nft-toggle button {
+.magi-token-toggle button {
 	background: transparent;
 	border: 0;
 	padding: 0.3rem 0.7rem;
@@ -780,23 +786,23 @@
 	cursor: pointer;
 	transition: background-color 0.15s ease, color 0.15s ease;
 }
-.magi-nft-toggle button.active {
+.magi-token-toggle button.active {
 	background: var(--magi-accent);
 	color: #ffffff;
 }
 
 /* ==== Status / error rows ==== */
-.magi-nft-status {
+.magi-token-status {
 	font-size: 0.8rem;
 	color: var(--magi-green);
 	margin: 0;
 }
-.magi-nft-status.error {
+.magi-token-status.error {
 	color: var(--magi-red);
 }
 
 /* ==== Submit button ==== */
-.magi-nft-submit {
+.magi-token-submit {
 	width: 100%;
 	padding: 0.75rem 1rem;
 	border: 0;
@@ -809,34 +815,34 @@
 	font-family: inherit;
 	transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.05s ease;
 }
-.magi-nft-submit:hover:not(:disabled) {
+.magi-token-submit:hover:not(:disabled) {
 	background: var(--magi-accent-hover);
 }
-.magi-nft-submit:active:not(:disabled) {
+.magi-token-submit:active:not(:disabled) {
 	transform: translateY(1px);
 }
-.magi-nft-submit:disabled {
+.magi-token-submit:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
-.magi-nft-submit.danger {
+.magi-token-submit.danger {
 	background: var(--magi-red);
 }
-.magi-nft-submit.danger:hover:not(:disabled) {
+.magi-token-submit.danger:hover:not(:disabled) {
 	background: #b91c1c;
 }
-.magi-nft-submit.ghost {
+.magi-token-submit.ghost {
 	background: transparent;
 	color: var(--magi-text-secondary);
 	border: 1px solid var(--magi-field-border);
 }
-.magi-nft-submit.ghost:hover:not(:disabled) {
+.magi-token-submit.ghost:hover:not(:disabled) {
 	color: var(--magi-text);
 	border-color: var(--magi-text-muted);
 }
 
 /* ==== Success banner ==== */
-.magi-nft-success {
+.magi-token-success {
 	margin-top: 0.4rem;
 	padding: 0.55rem 0.75rem;
 	background: rgba(22, 163, 74, 0.06);
@@ -849,11 +855,11 @@
 	gap: 0.5rem;
 	flex-wrap: wrap;
 }
-.magi-nft-success-label {
+.magi-token-success-label {
 	font-weight: 600;
 	flex-shrink: 0;
 }
-.magi-nft-success-tx {
+.magi-token-success-tx {
 	background: rgba(22, 163, 74, 0.08);
 	color: var(--magi-green);
 	padding: 2px 8px;
@@ -866,27 +872,27 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.magi-nft-success-actions {
+.magi-token-success-actions {
 	display: flex;
 	gap: 0.3rem;
 	margin-left: auto;
 }
 /* Greenify the icon-buttons inside the success banner so they read as
  * affirmative affordances instead of neutral toolbar icons. */
-.magi-nft-success .magi-nft-icon-btn {
+.magi-token-success .magi-token-icon-btn {
 	color: var(--magi-green);
 	border-color: rgba(22, 163, 74, 0.25);
 	background: rgba(22, 163, 74, 0.04);
 	text-decoration: none;
 }
-.magi-nft-success .magi-nft-icon-btn:hover:not(:disabled) {
+.magi-token-success .magi-token-icon-btn:hover:not(:disabled) {
 	color: #ffffff;
 	background: var(--magi-green);
 	border-color: var(--magi-green);
 }
 
 /* ==== Batch checkbox row ==== */
-.magi-nft-batch-row {
+.magi-token-batch-row {
 	display: flex;
 	align-items: center;
 	gap: 0.6rem;
@@ -897,15 +903,15 @@
 	cursor: pointer;
 	transition: border-color 0.15s ease, background-color 0.15s ease;
 }
-.magi-nft-batch-row.checked {
+.magi-token-batch-row.checked {
 	border-color: var(--magi-accent);
 	background: var(--magi-accent-light);
 }
-.magi-nft-batch-row input[type='checkbox'] {
+.magi-token-batch-row input[type='checkbox'] {
 	accent-color: var(--magi-accent);
 	cursor: pointer;
 }
-.magi-nft-batch-row input[type='number'] {
+.magi-token-batch-row input[type='number'] {
 	width: 70px;
 	background: var(--magi-card-bg);
 	border: 1px solid var(--magi-field-border);
@@ -917,12 +923,12 @@
 	font-family: inherit;
 	margin-left: auto;
 }
-.magi-nft-batch-row-id {
+.magi-token-batch-row-id {
 	font-size: 0.8rem;
 	color: var(--magi-text);
 	font-family: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.magi-nft-batch-row-balance {
+.magi-token-batch-row-balance {
 	font-size: 0.7rem;
 	color: var(--magi-text-muted);
 }

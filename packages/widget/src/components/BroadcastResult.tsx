@@ -48,15 +48,15 @@ export function BroadcastResult({
 	}
 
 	return (
-		<div className="magi-nft-success">
-			<span className="magi-nft-success-label">Broadcast:</span>
-			<code className="magi-nft-success-tx" title={txId}>
+		<div className="magi-token-success">
+			<span className="magi-token-success-label">Broadcast:</span>
+			<code className="magi-token-success-tx" title={txId}>
 				{shortId}
 			</code>
-			<div className="magi-nft-success-actions">
+			<div className="magi-token-success-actions">
 				<button
 					type="button"
-					className="magi-nft-icon-btn"
+					className="magi-token-icon-btn"
 					title={copied ? 'Copied' : 'Copy transaction id'}
 					aria-label="Copy transaction id"
 					onClick={copy}
@@ -64,7 +64,7 @@ export function BroadcastResult({
 					{copied ? <CheckIcon /> : <CopyIcon />}
 				</button>
 				<a
-					className="magi-nft-icon-btn"
+					className="magi-token-icon-btn"
 					href={explorerUrl}
 					target="_blank"
 					rel="noopener noreferrer"

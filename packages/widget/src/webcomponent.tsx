@@ -9,7 +9,7 @@ import {
 import './styles.css';
 
 /**
- * Register `<magi-nft-panel>`, `<magi-token-panel>`, `<magi-assets>` as web
+ * Register `<magi-token-panel>`, `<magi-token-panel>`, `<magi-assets>` as web
  * components so non-React hosts (vanilla JS, Vue, Svelte, server-rendered
  * pages) can embed any panel with a single tag.
  *
@@ -98,7 +98,7 @@ const ContractDeployElement = r2wc(
 );
 
 if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
-	if (!customElements.get('magi-nft-panel')) customElements.define('magi-nft-panel', NftPanelElement);
+	if (!customElements.get('magi-token-panel')) customElements.define('magi-token-panel', NftPanelElement);
 	if (!customElements.get('magi-token-panel')) customElements.define('magi-token-panel', TokenPanelElement);
 	if (!customElements.get('magi-assets')) customElements.define('magi-assets', AssetsElement);
 	if (!customElements.get('magi-contract-deploy')) customElements.define('magi-contract-deploy', ContractDeployElement);

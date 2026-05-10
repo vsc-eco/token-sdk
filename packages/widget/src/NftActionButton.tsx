@@ -28,7 +28,7 @@ export interface NftActionButtonProps {
 /**
  * Drop-in single-action button for hosts that already render their own
  * NFT list and just want a "Transfer" or "Burn" CTA per item, with the
- * SDK-provided form modal. Renders a `.magi-nft` card so the modal has
+ * SDK-provided form modal. Renders a `.magi-token` card so the modal has
  * positioning context, but the card body is invisible (just the button).
  */
 export function NftActionButton(props: NftActionButtonProps) {
@@ -50,12 +50,12 @@ export function NftActionButton(props: NftActionButtonProps) {
 	const buttonLabel = label ?? (action === 'transfer' ? 'Transfer' : 'Burn');
 	return (
 		<div
-			className={`magi-nft ${className ?? ''}`}
+			className={`magi-token ${className ?? ''}`}
 			style={{ display: 'inline-block', padding: 0, border: 0, background: 'transparent', boxShadow: 'none' }}
 		>
 			<button
 				type="button"
-				className={action === 'burn' ? 'magi-nft-submit danger' : 'magi-nft-submit'}
+				className={action === 'burn' ? 'magi-token-submit danger' : 'magi-token-submit'}
 				disabled={!username}
 				onClick={() => setOpen(true)}
 				style={{ width: 'auto', padding: '0.5rem 1rem' }}

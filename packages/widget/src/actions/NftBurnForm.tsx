@@ -77,20 +77,20 @@ export function NftBurnForm({ client, username, item, onSuccess, onClose }: NftB
 			)}
 
 			{(error || validation.err) && (
-				<p className="magi-nft-status error">{error ?? validation.err}</p>
+				<p className="magi-token-status error">{error ?? validation.err}</p>
 			)}
 
 			{txId ? (
 				<>
 					<BroadcastResult txId={txId} />
-					<button type="button" className="magi-nft-submit ghost" onClick={onClose}>
+					<button type="button" className="magi-token-submit ghost" onClick={onClose}>
 						Done
 					</button>
 				</>
 			) : (
 				<button
 					type="button"
-					className="magi-nft-submit danger"
+					className="magi-token-submit danger"
 					disabled={!validation.ok || submitting}
 					onClick={handleSubmit}
 				>

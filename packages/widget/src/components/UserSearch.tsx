@@ -28,9 +28,9 @@ export function UserSearch({
 	viewing
 }: UserSearchProps) {
 	return (
-		<div className="magi-nft-search">
+		<div className="magi-token-search">
 			<svg
-				className="magi-nft-search-icon"
+				className="magi-token-search-icon"
 				width="14"
 				height="14"
 				viewBox="0 0 24 24"
@@ -64,7 +64,7 @@ export function UserSearch({
 			{readOnly && (
 				<>
 					{viewing && (
-						<span className="magi-nft-search-status">
+						<span className="magi-token-search-status">
 							@{viewing}
 						</span>
 					)}

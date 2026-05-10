@@ -62,7 +62,7 @@ export interface ContractTemplate {
  */
 export const DEFAULT_DEPLOY_TEMPLATES: ContractTemplate[] = [
 	{
-		id: 'magi-nft',
+		id: 'magi-token',
 		label: 'Magi NFT (ERC-1155)',
 		description: 'Official Magi NFT contract from vsc-eco/magi_nft-contract.',
 		repo: 'vsc-eco/magi_nft-contract',
@@ -459,17 +459,17 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 			onClose={handleClose}
 		>
 			{!lockType && stage === 'form' && (
-				<div className="magi-nft-tabs" style={{ marginBottom: '0.6rem' }}>
+				<div className="magi-token-tabs" style={{ marginBottom: '0.6rem' }}>
 					<button
 						type="button"
-						className={`magi-nft-tab ${type === 'nft' ? 'active' : ''}`}
+						className={`magi-token-tab ${type === 'nft' ? 'active' : ''}`}
 						onClick={() => setType('nft')}
 					>
 						NFT collection
 					</button>
 					<button
 						type="button"
-						className={`magi-nft-tab ${type === 'token' ? 'active' : ''}`}
+						className={`magi-token-tab ${type === 'token' ? 'active' : ''}`}
 						onClick={() => setType('token')}
 					>
 						Token
@@ -596,7 +596,7 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 							hint="Built by the deployer backend. Override via the `templates` prop."
 						>
 							<select
-								className="magi-nft-input-wrap"
+								className="magi-token-input-wrap"
 								style={{ padding: '0.55rem 0.7rem', fontSize: '0.85rem' }}
 								value={selectedTemplate?.id ?? ''}
 								onChange={(e) => setSelectedTemplateId(e.currentTarget.value)}
@@ -610,7 +610,7 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 						</Field>
 					)}
 					{availableTemplates.length === 0 && (
-						<p className="magi-nft-status error">
+						<p className="magi-token-status error">
 							No <code>{type}</code> source template configured. Pass a{' '}
 							<code>templates</code> prop with a matching <code>tag</code> to
 							offer one.
@@ -631,11 +631,11 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 						</p>
 					)}
 					{validation.err && (
-						<p className="magi-nft-status error">{validation.err}</p>
+						<p className="magi-token-status error">{validation.err}</p>
 					)}
 					<button
 						type="button"
-						className="magi-nft-submit"
+						className="magi-token-submit"
 						disabled={!validation.ok || availableTemplates.length === 0}
 						onClick={handleDeploy}
 					>
@@ -719,8 +719,8 @@ function DeployProgress({
 			</div>
 
 			{(stage === 'waiting-contract' || stage === 'building') && (
-				<div className="magi-nft-spinner-row" role="status" aria-live="polite">
-					<span className="magi-nft-spinner" aria-hidden="true" />
+				<div className="magi-token-spinner-row" role="status" aria-live="polite">
+					<span className="magi-token-spinner" aria-hidden="true" />
 					<span>
 						{stage === 'waiting-contract'
 							? 'Waiting for the indexer to register the new contract id - this can take a minute or two…'
@@ -731,7 +731,7 @@ function DeployProgress({
 
 			{logs.length > 0 && <DeployLogPane logs={logs} />}
 
-			{error && <p className="magi-nft-status error">{error}</p>}
+			{error && <p className="magi-token-status error">{error}</p>}
 
 			{deployTxId && (
 				<>
@@ -752,9 +752,9 @@ function DeployProgress({
 					<span style={{ fontSize: '0.7rem', color: 'var(--magi-text-muted)' }}>
 						Contract id
 					</span>
-					<div className="magi-nft-success" style={{ marginTop: 0 }}>
-						<span className="magi-nft-success-label">vsc:</span>
-						<code className="magi-nft-success-tx" title={contractId}>
+					<div className="magi-token-success" style={{ marginTop: 0 }}>
+						<span className="magi-token-success-label">vsc:</span>
+						<code className="magi-token-success-tx" title={contractId}>
 							{contractId}
 						</code>
 					</div>
@@ -770,7 +770,7 @@ function DeployProgress({
 			)}
 
 			{(stage === 'done' || stage === 'error') && (
-				<button type="button" className="magi-nft-submit ghost" onClick={onDone}>
+				<button type="button" className="magi-token-submit ghost" onClick={onDone}>
 					{stage === 'done' ? 'Done' : 'Close'}
 				</button>
 			)}

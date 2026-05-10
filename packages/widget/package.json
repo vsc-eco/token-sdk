@@ -25,11 +25,11 @@
       "import": "./dist/webcomponent.js"
     },
     "./styles.css": "./dist/styles.css",
-    "./themes/altera-dark.css": "./dist/themes/altera-dark.css"
+    "./themes/light.css": "./dist/themes/light.css"
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsup src/index.tsx src/webcomponent.tsx --format esm --dts --clean --external react --external react-dom --loader .css=copy --loader .svg=dataurl && cp dist/styles-*.css dist/styles.css 2>/dev/null || true && mkdir -p dist/themes && cp src/themes/altera-dark.css dist/themes/altera-dark.css",
+    "build": "tsup src/index.tsx src/webcomponent.tsx --format esm --dts --clean --external react --external react-dom --loader .css=copy --loader .svg=dataurl && cp dist/styles-*.css dist/styles.css 2>/dev/null || true && mkdir -p dist/themes && cp src/themes/light.css dist/themes/light.css",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },

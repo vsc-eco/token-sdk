@@ -236,10 +236,10 @@ export function TokenTransferForm({
 			subtitle={`${info.name} - Balance: ${balanceDisplay} ${info.symbol}`}
 			onClose={onClose}
 		>
-			<div className="magi-nft-tabs" style={{ marginBottom: '0.4rem' }}>
+			<div className="magi-token-tabs" style={{ marginBottom: '0.4rem' }}>
 				<button
 					type="button"
-					className={`magi-nft-tab ${mode === 'single' ? 'active' : ''}`}
+					className={`magi-token-tab ${mode === 'single' ? 'active' : ''}`}
 					onClick={() => setMode('single')}
 					disabled={submitting}
 				>
@@ -247,7 +247,7 @@ export function TokenTransferForm({
 				</button>
 				<button
 					type="button"
-					className={`magi-nft-tab ${mode === 'distribute' ? 'active' : ''}`}
+					className={`magi-token-tab ${mode === 'distribute' ? 'active' : ''}`}
 					onClick={() => setMode('distribute')}
 					disabled={submitting}
 				>
@@ -269,7 +269,7 @@ export function TokenTransferForm({
 					label="Recipients"
 					hint="One per username, separated by spaces / commas / newlines. `tibfox`, `@tibfox`, `hive:tibfox` all work."
 				>
-					<div className={`magi-nft-input-wrap ${distributeStats?.invalid.length ? 'error' : ''}`}>
+					<div className={`magi-token-input-wrap ${distributeStats?.invalid.length ? 'error' : ''}`}>
 						<textarea
 							value={recipientsText}
 							onChange={(e) => setRecipientsText((e.target as HTMLTextAreaElement).value)}
@@ -328,7 +328,7 @@ export function TokenTransferForm({
 			)}
 
 			{(error || validation.err) && (
-				<p className="magi-nft-status error">{error ?? validation.err}</p>
+				<p className="magi-token-status error">{error ?? validation.err}</p>
 			)}
 
 			{txIds.length > 0 ? (
@@ -336,14 +336,14 @@ export function TokenTransferForm({
 					{txIds.map((id) => (
 						<BroadcastResult key={id} txId={id} />
 					))}
-					<button type="button" className="magi-nft-submit ghost" onClick={onClose}>
+					<button type="button" className="magi-token-submit ghost" onClick={onClose}>
 						Done
 					</button>
 				</>
 			) : (
 				<button
 					type="button"
-					className="magi-nft-submit"
+					className="magi-token-submit"
 					disabled={!validation.ok || submitting}
 					onClick={handleSubmit}
 				>

@@ -10,13 +10,13 @@ interface FieldProps {
 /** Labelled wrapper around an input. Mirrors `.magi-qs-receiver` shape. */
 export function Field({ label, hint, error, children }: FieldProps) {
 	return (
-		<div className="magi-nft-field">
-			<span className="magi-nft-field-label">{label}</span>
+		<div className="magi-token-field">
+			<span className="magi-token-field-label">{label}</span>
 			{children}
 			{error ? (
-				<p className="magi-nft-status error">{error}</p>
+				<p className="magi-token-status error">{error}</p>
 			) : hint ? (
-				<p className="magi-nft-field-hint">{hint}</p>
+				<p className="magi-token-field-hint">{hint}</p>
 			) : null}
 		</div>
 	);
@@ -37,7 +37,7 @@ interface TextInputProps {
 
 export function TextInput(props: TextInputProps) {
 	return (
-		<div className={`magi-nft-input-wrap ${props.error ? 'error' : ''}`}>
+		<div className={`magi-token-input-wrap ${props.error ? 'error' : ''}`}>
 			<input
 				type={props.type ?? 'text'}
 				inputMode={props.inputMode}

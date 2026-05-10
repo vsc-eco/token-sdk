@@ -55,7 +55,7 @@ import '@vsc.eco/token-widget/styles.css';
 </script>
 ```
 
-Three tags are registered: `<magi-nft-panel>`, `<magi-token-panel>`, `<magi-assets>`. Object-valued props (`aioha`, `config`, callbacks) MUST be set as JS properties — string/number/boolean attributes pass through fine.
+Three tags are registered: `<magi-token-panel>`, `<magi-token-panel>`, `<magi-assets>`. Object-valued props (`aioha`, `config`, callbacks) MUST be set as JS properties — string/number/boolean attributes pass through fine.
 
 ## Bring-your-own UI
 
@@ -116,10 +116,10 @@ It posts a build request to `https://deploy.okinoko.io`, streams the build log v
 
 ## Theming
 
-CSS custom properties on `.magi-nft` — see the [top-level README](../../README.md#theming) for the full variable list. Altera dark theme is opt-in:
+CSS custom properties on `.magi-token` — see the [top-level README](../../README.md#theming) for the full variable list. **The default theme is Altera dark** — embed and you get the Magi look automatically. The light theme ships as an opt-in:
 
 ```ts
-import '@vsc.eco/token-widget/themes/altera-dark.css';
-// then add the host class to any panel:
-<MagiAssets className="magi-nft-altera-host" ... />
+import '@vsc.eco/token-widget/themes/light.css';
+// then add the host class to any panel (or any ancestor):
+<MagiAssets className="magi-token-light-host" ... />
 ```

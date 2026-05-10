@@ -35,7 +35,7 @@ export interface MagiNftPanelProps {
 	className?: string;
 	/** Hide the badge + subtitle if you'd rather draw the chrome yourself. */
 	hideHeader?: boolean;
-	/** Skip the outer `.magi-nft` card wrapper - use when nesting inside another magi-nft host. */
+	/** Skip the outer `.magi-token` card wrapper - use when nesting inside another magi-token host. */
 	bare?: boolean;
 	/**
 	 * Account whose NFTs to display. Defaults to `username`. When set to a
@@ -521,8 +521,8 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 	}
 
 	const rootClass = bare
-		? `magi-nft-bare ${className ?? ''}`.trim()
-		: `magi-nft ${className ?? ''}`.trim();
+		? `magi-token-bare ${className ?? ''}`.trim()
+		: `magi-token ${className ?? ''}`.trim();
 
 	return (
 		<div className={rootClass}>
@@ -530,14 +530,14 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 				<RefreshButton refreshing={refreshing} onClick={handleRefresh} />
 			)}
 			{!hideHeader && (
-				<div className="magi-nft-header">
-					<div className="magi-nft-badge">
-						<span className="magi-nft-dot" />
-						<span className="magi-nft-badge-text">
+				<div className="magi-token-header">
+					<div className="magi-token-badge">
+						<span className="magi-token-dot" />
+						<span className="magi-token-badge-text">
 							{readOnly ? 'NFTs - read only' : 'MAGI NFTs'}
 						</span>
 					</div>
-					<p className="magi-nft-subtitle">
+					<p className="magi-token-subtitle">
 						{readOnly
 							? `Viewing @${account?.replace(/^hive:/, '')} - actions disabled`
 							: 'Your collections on the Magi network'}
@@ -546,7 +546,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 			)}
 
 			{(enableUserSearch || (enableDeploy && !readOnly && username)) && (
-				<div className="magi-nft-toolbar">
+				<div className="magi-token-toolbar">
 					{enableUserSearch && (
 						<UserSearch
 							searchInput={searchInput}
@@ -561,7 +561,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					{enableDeploy && !readOnly && username && (
 						<button
 							type="button"
-							className="magi-nft-toolbar-action"
+							className="magi-token-toolbar-action"
 							title="Deploy a new NFT collection"
 							onClick={() => setDeployOpen(true)}
 						>
@@ -575,25 +575,25 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 				</div>
 			)}
 
-			{!account && <div className="magi-nft-state">Connect your Hive wallet to load NFTs.</div>}
+			{!account && <div className="magi-token-state">Connect your Hive wallet to load NFTs.</div>}
 			{account && items === null && !error && (
-				<div className="magi-nft-state">Loading…</div>
+				<div className="magi-token-state">Loading…</div>
 			)}
-			{error && <div className="magi-nft-state magi-nft-status error">{error}</div>}
+			{error && <div className="magi-token-state magi-token-status error">{error}</div>}
 			{account && items && items.length === 0 && (
-				<div className="magi-nft-state">No NFTs found for @{account.replace(/^hive:/, '')}.</div>
+				<div className="magi-token-state">No NFTs found for @{account.replace(/^hive:/, '')}.</div>
 			)}
 
 			{groups.map((g) => {
 				const isExpanded = expanded[g.contractId] !== false;
 				return (
-					<div className="magi-nft-group" key={g.contractId}>
+					<div className="magi-token-group" key={g.contractId}>
 						<div
-							className="magi-nft-group-header"
+							className="magi-token-group-header"
 							onClick={() => setExpanded((prev) => ({ ...prev, [g.contractId]: !isExpanded }))}
 						>
 							<svg
-								className={`magi-nft-group-chevron ${isExpanded ? 'expanded' : ''}`}
+								className={`magi-token-group-chevron ${isExpanded ? 'expanded' : ''}`}
 								width="10"
 								height="10"
 								viewBox="0 0 10 10"
@@ -609,7 +609,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 							</svg>
 							{collectionIcons[g.contractId] && (
 								<img
-									className="magi-nft-group-icon"
+									className="magi-token-group-icon"
 									src={collectionIcons[g.contractId] as string}
 									alt=""
 									onError={(e) => {
@@ -620,9 +620,9 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 									}}
 								/>
 							)}
-							<span className="magi-nft-group-name">{g.name}</span>
-							{g.symbol && <span className="magi-nft-group-symbol">{g.symbol}</span>}
-							<span className="magi-nft-group-count">
+							<span className="magi-token-group-name">{g.name}</span>
+							{g.symbol && <span className="magi-token-group-symbol">{g.symbol}</span>}
+							<span className="magi-token-group-count">
 								{g.items.length === 0
 									? 'empty'
 									: `${g.items.length} token${g.items.length !== 1 ? 's' : ''}`}
@@ -630,7 +630,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 							{!readOnly && isExpanded && g.items.length > 1 && (
 								<button
 									type="button"
-									className="magi-nft-icon-btn"
+									className="magi-token-icon-btn"
 									title="Batch transfer"
 									onClick={(e) => {
 										e.stopPropagation();
@@ -644,7 +644,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 								<>
 									<button
 										type="button"
-										className="magi-nft-icon-btn"
+										className="magi-token-icon-btn"
 										title="Edit collection (baseUri, description, icon, owner)"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -655,7 +655,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 									</button>
 									<button
 										type="button"
-										className="magi-nft-icon-btn"
+										className="magi-token-icon-btn"
 										title="Mint into this collection"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -669,13 +669,13 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 						</div>
 
 						{isExpanded && g.items.length === 0 && (
-							<div className="magi-nft-state">
+							<div className="magi-token-state">
 								No tokens minted yet.
 								{!readOnly && isOwnedCollection(g, username) ? ' Use the + button above to mint the first one.' : ''}
 							</div>
 						)}
 						{isExpanded && g.items.length > 0 && (
-							<div className="magi-nft-grid">
+							<div className="magi-token-grid">
 								{groupTilesByTemplate(g.items).map((entry) => {
 									if (entry.kind === 'item') {
 										const it = entry.item;
@@ -843,13 +843,13 @@ function NftTile({ item, imageUrl, readOnly, onTransfer, onBurn }: TileProps) {
 	const [imgFailed, setImgFailed] = useState(false);
 	const useFallback = !imageUrl || imgFailed;
 	return (
-		<div className="magi-nft-tile">
-			<div className={`magi-nft-tile-image ${useFallback ? 'fallback' : ''}`}>
+		<div className="magi-token-tile">
+			<div className={`magi-token-tile-image ${useFallback ? 'fallback' : ''}`}>
 				{useFallback ? (
 					<img
 						src={magiFallbackSvg}
 						alt={`${item.collection.symbol} #${item.tokenId}`}
-						className="magi-nft-tile-fallback-img"
+						className="magi-token-tile-fallback-img"
 					/>
 				) : (
 					<img
@@ -859,14 +859,14 @@ function NftTile({ item, imageUrl, readOnly, onTransfer, onBurn }: TileProps) {
 					/>
 				)}
 			</div>
-			<div className="magi-nft-tile-id" title={item.tokenId}>
+			<div className="magi-token-tile-id" title={item.tokenId}>
 				#{item.tokenId}
 			</div>
-			<div className="magi-nft-tile-row">
+			<div className="magi-token-tile-row">
 				{!item.isUnique && (
-					<span className="magi-nft-tile-balance">×{item.balance}</span>
+					<span className="magi-token-tile-balance">×{item.balance}</span>
 				)}
-				<span className="magi-nft-tile-tag">{tag}</span>
+				<span className="magi-token-tile-tag">{tag}</span>
 			</div>
 			{!readOnly && (
 				<div
@@ -878,7 +878,7 @@ function NftTile({ item, imageUrl, readOnly, onTransfer, onBurn }: TileProps) {
 				>
 					<button
 						type="button"
-						className="magi-nft-icon-btn"
+						className="magi-token-icon-btn"
 						title="Transfer"
 						onClick={(e) => {
 							e.stopPropagation();
@@ -890,7 +890,7 @@ function NftTile({ item, imageUrl, readOnly, onTransfer, onBurn }: TileProps) {
 					</button>
 					<button
 						type="button"
-						className="magi-nft-icon-btn danger"
+						className="magi-token-icon-btn danger"
 						title="Burn"
 						onClick={(e) => {
 							e.stopPropagation();
@@ -960,7 +960,7 @@ export function RefreshButton({
 	return (
 		<button
 			type="button"
-			className="magi-nft-refresh-btn"
+			className="magi-token-refresh-btn"
 			title={refreshing ? 'Refreshing…' : 'Refresh'}
 			aria-label="Refresh"
 			onClick={onClick}
@@ -1023,7 +1023,7 @@ function TemplateTile({ templateId, name, imageUrl, itemCount, onClick }: Templa
 	const useFallback = !imageUrl || imgFailed;
 	return (
 		<div
-			className="magi-nft-tile magi-nft-template-tile"
+			className="magi-token-tile magi-token-template-tile"
 			onClick={onClick}
 			role="button"
 			tabIndex={0}
@@ -1034,25 +1034,25 @@ function TemplateTile({ templateId, name, imageUrl, itemCount, onClick }: Templa
 				}
 			}}
 		>
-			<div className={`magi-nft-tile-image ${useFallback ? 'fallback' : ''}`}>
+			<div className={`magi-token-tile-image ${useFallback ? 'fallback' : ''}`}>
 				{useFallback ? (
 					<img
 						src={magiFallbackSvg}
 						alt={name}
-						className="magi-nft-tile-fallback-img"
+						className="magi-token-tile-fallback-img"
 					/>
 				) : (
 					<img src={imageUrl as string} alt={name} onError={() => setImgFailed(true)} />
 				)}
 				{/* Stacked-card affordance to telegraph "this opens a list" */}
-				<span className="magi-nft-template-stack" aria-hidden="true" />
+				<span className="magi-token-template-stack" aria-hidden="true" />
 			</div>
-			<div className="magi-nft-tile-id" title={templateId}>
+			<div className="magi-token-tile-id" title={templateId}>
 				{name}
 			</div>
-			<div className="magi-nft-tile-row">
-				<span className="magi-nft-tile-balance">{itemCount} items</span>
-				<span className="magi-nft-tile-tag">Series</span>
+			<div className="magi-token-tile-row">
+				<span className="magi-token-tile-balance">{itemCount} items</span>
+				<span className="magi-token-tile-tag">Series</span>
 			</div>
 		</div>
 	);
@@ -1100,7 +1100,7 @@ function TemplateExpansionModal({
 			{!readOnly && hasSigner && items.length > 1 && (
 				<button
 					type="button"
-					className="magi-nft-submit ghost"
+					className="magi-token-submit ghost"
 					onClick={onBatchTransfer}
 				>
 					Batch transfer all in series
@@ -1146,8 +1146,8 @@ function TemplateItemRow({
 	const [imgFailed, setImgFailed] = useState(false);
 	const useFallback = !imageUrl || imgFailed;
 	return (
-		<div className="magi-nft-template-item">
-			<div className={`magi-nft-template-item-img ${useFallback ? 'fallback' : ''}`}>
+		<div className="magi-token-template-item">
+			<div className={`magi-token-template-item-img ${useFallback ? 'fallback' : ''}`}>
 				{useFallback ? (
 					<img src={magiFallbackSvg} alt={item.tokenId} />
 				) : (
@@ -1158,9 +1158,9 @@ function TemplateItemRow({
 					/>
 				)}
 			</div>
-			<div className="magi-nft-template-item-info">
-				<span className="magi-nft-template-item-id">{item.tokenId}</span>
-				<span className="magi-nft-template-item-meta">
+			<div className="magi-token-template-item-info">
+				<span className="magi-token-template-item-id">{item.tokenId}</span>
+				<span className="magi-token-template-item-meta">
 					{item.isUnique
 						? 'Unique'
 						: `×${item.balance}${item.maxSupply > 1 ? ` of ${item.maxSupply}` : ''}`}
@@ -1168,10 +1168,10 @@ function TemplateItemRow({
 				</span>
 			</div>
 			{!readOnly && (
-				<div className="magi-nft-template-item-actions">
+				<div className="magi-token-template-item-actions">
 					<button
 						type="button"
-						className="magi-nft-icon-btn"
+						className="magi-token-icon-btn"
 						title="Transfer"
 						disabled={item.soulbound}
 						onClick={onTransfer}
@@ -1180,7 +1180,7 @@ function TemplateItemRow({
 					</button>
 					<button
 						type="button"
-						className="magi-nft-icon-btn danger"
+						className="magi-token-icon-btn danger"
 						title="Burn"
 						onClick={onBurn}
 					>

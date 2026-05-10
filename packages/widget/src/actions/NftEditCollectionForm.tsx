@@ -247,10 +247,10 @@ export function NftEditCollectionForm({
 				/>
 			</Field>
 
-			<div className="magi-nft-tabs" style={{ marginTop: '0.4rem', marginBottom: '0.4rem' }}>
+			<div className="magi-token-tabs" style={{ marginTop: '0.4rem', marginBottom: '0.4rem' }}>
 				<button
 					type="button"
-					className={`magi-nft-tab ${mode === 'simple' ? 'active' : ''}`}
+					className={`magi-token-tab ${mode === 'simple' ? 'active' : ''}`}
 					onClick={() => setMode('simple')}
 					disabled={submitting}
 				>
@@ -258,7 +258,7 @@ export function NftEditCollectionForm({
 				</button>
 				<button
 					type="button"
-					className={`magi-nft-tab ${mode === 'json' ? 'active' : ''}`}
+					className={`magi-token-tab ${mode === 'json' ? 'active' : ''}`}
 					onClick={() => setMode('json')}
 					disabled={submitting}
 				>
@@ -293,7 +293,7 @@ export function NftEditCollectionForm({
 					hint="Free-form collection metadata. Stored verbatim on-chain."
 					error={jsonError ?? undefined}
 				>
-					<div className={`magi-nft-input-wrap ${jsonError ? 'error' : ''}`}>
+					<div className={`magi-token-input-wrap ${jsonError ? 'error' : ''}`}>
 						<textarea
 							value={metadataJson}
 							onChange={(e) =>
@@ -355,7 +355,7 @@ export function NftEditCollectionForm({
 			)}
 
 			{(error || validation.err) && (
-				<p className="magi-nft-status error">{error ?? validation.err}</p>
+				<p className="magi-token-status error">{error ?? validation.err}</p>
 			)}
 
 			{txIds.length > 0 ? (
@@ -363,14 +363,14 @@ export function NftEditCollectionForm({
 					{txIds.map((id) => (
 						<BroadcastResult key={id} txId={id} />
 					))}
-					<button type="button" className="magi-nft-submit ghost" onClick={onClose}>
+					<button type="button" className="magi-token-submit ghost" onClick={onClose}>
 						Done
 					</button>
 				</>
 			) : (
 				<button
 					type="button"
-					className="magi-nft-submit"
+					className="magi-token-submit"
 					disabled={!validation.ok || submitting}
 					onClick={handleSubmit}
 				>

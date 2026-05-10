@@ -8,7 +8,7 @@ interface ModalProps {
 }
 
 /**
- * Inline-positioned modal that overlays its closest `.magi-nft` ancestor.
+ * Inline-positioned modal that overlays its closest `.magi-token` ancestor.
  * Lifted out so every action form (transfer, burn, batch transfer, ...)
  * shares the same chrome. Inputs match the swap widget's modal pattern
  * (`.magi-qs-rc-modal-card` from crosschain-widget) so themes apply
@@ -16,20 +16,20 @@ interface ModalProps {
  */
 export function Modal({ title, subtitle, onClose, children }: ModalProps) {
 	return (
-		<div className="magi-nft-modal" role="dialog" aria-modal="true" onClick={onClose}>
-			<div className="magi-nft-modal-card" onClick={(e) => e.stopPropagation()}>
-				<h3 className="magi-nft-modal-title">
+		<div className="magi-token-modal" role="dialog" aria-modal="true" onClick={onClose}>
+			<div className="magi-token-modal-card" onClick={(e) => e.stopPropagation()}>
+				<h3 className="magi-token-modal-title">
 					<span>{title}</span>
 					<button
 						type="button"
-						className="magi-nft-modal-close"
+						className="magi-token-modal-close"
 						onClick={onClose}
 						aria-label="Close"
 					>
 						✕
 					</button>
 				</h3>
-				{subtitle && <p className="magi-nft-modal-subtitle">{subtitle}</p>}
+				{subtitle && <p className="magi-token-modal-subtitle">{subtitle}</p>}
 				{children}
 			</div>
 		</div>
