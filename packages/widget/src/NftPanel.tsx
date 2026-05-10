@@ -347,19 +347,22 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 	}
 
 	// Fetch collection-level icons (from the `collection_metadata` state
-	// blob) once we know which collections the user holds. One getStateByKeys
-	// call per contract, fired in parallel and applied as each returns.
+	// blob) once we know which collections the panel renders. One
+	// getStateByKeys call per contract, fired in parallel and applied as
+	// each returns. Iterates BOTH held items AND empty-owned collections -
+	// without the latter, an owned-but-no-mints collection had its group
+	// header but no icon because the fetch effect skipped it.
 	useEffect(() => {
-		if (!items?.length) return;
+		if (!items?.length && emptyOwnedCollections.length === 0) return;
 		const seen = new Set<string>();
 		const missing: string[] = [];
-		for (const it of items) {
-			if (seen.has(it.contractId)) continue;
-			seen.add(it.contractId);
-			if (collectionIcons[it.contractId] === undefined) {
-				missing.push(it.contractId);
-			}
-		}
+		const considerContract = (cid: string) => {
+			if (seen.has(cid)) return;
+			seen.add(cid);
+			if (collectionIcons[cid] === undefined) missing.push(cid);
+		};
+		for (const it of items ?? []) considerContract(it.contractId);
+		for (const c of emptyOwnedCollections) considerContract(c.contractId);
 		if (!missing.length) return;
 		let cancelled = false;
 		for (const cid of missing) {
@@ -382,7 +385,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 		return () => {
 			cancelled = true;
 		};
-	}, [items, client, collectionIcons]);
+	}, [items, emptyOwnedCollections, client, collectionIcons]);
 
 	// Resolve per-token images once items are loaded. Priority (matches
 	// okinoko-terminal): own props.image → template props.image → baseUri+tokenId.
