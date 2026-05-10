@@ -326,22 +326,18 @@ function DemoApp() {
 				<Code>{LOCKED_SNIPPET}</Code>
 			</pre>
 			<p>
-				Live example below: the connected user's panel with the search
-				hidden. Actions stay enabled because the displayed account matches
-				the signer. Drop <code>viewAccount="someone-else"</code> in to flip
-				it into read-only profile mode.
+				Live example below: <code>viewAccount="diyhub"</code> with the
+				search hidden - a real read-only profile embed showing diyhub's NFT
+				holdings and DIY token balance. No wallet connection needed; works
+				the same whether you're signed in or not.
 			</p>
 			<div className="live">
-				{aioha && (
-					<MagiAssets
-						aioha={aioha}
-						username={username}
-						keyType={KeyTypes.Active}
-						enableUserSearch={false}
-						onSuccess={(tx) => setLastTx(tx)}
-						className={themedClass}
-					/>
-				)}
+				<MagiAssets
+					aioha={aioha ?? undefined}
+					viewAccount="diyhub"
+					enableUserSearch={false}
+					className={themedClass}
+				/>
 			</div>
 
 			{/* ============== Headless ============== */}
