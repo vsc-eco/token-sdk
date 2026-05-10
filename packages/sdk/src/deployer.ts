@@ -322,7 +322,12 @@ export function createDeployerClient(
 		// minutes during pool-of-builds congestion; 90s was too eager.
 		const timeout = args.timeoutMs ?? 300000;
 		const start = Date.now();
-		const ownerHive = owner.startsWith('hive:') ? owner : `hive:${owner}`;
+		// Case-insensitive bare-name match: Hive usernames are lowercase
+		// on-chain but a host might pass `TIBFOX` from an input field.
+		// Strip any leading `@` / `hive:` and lowercase both sides so the
+		// creator gate doesn't reject a row over capitalisation drift.
+		const ownerBare = owner.replace(/^(@|hive:)+/, '').trim().toLowerCase();
+		const ownerHive = `hive:${ownerBare}`;
 		const sinceMs = since.getTime();
 		// FindContractFilter only supports byId / byCode / historical /
 		// offset / limit (verified via __type introspection). There's no
@@ -370,7 +375,11 @@ export function createDeployerClient(
 					// means the contract didn't exist when we kicked off.
 					const candidates: Array<{ id: string; name: string; ts: number }> = [];
 					for (const row of rows) {
-						if (row.creator !== ownerHive) continue;
+						// Defensive case-insensitive compare on the indexer's
+						// side too - the creator is always written as
+						// `hive:<bare>` lowercase, but normalise anyway in
+						// case a future change emits a different casing.
+						if (row.creator?.toLowerCase() !== ownerHive) continue;
 						const ts = parseUtcTs(row.creation_ts);
 						if (!Number.isFinite(ts)) continue;
 						if (ts >= sinceMs) candidates.push({ id: row.id, name: row.name, ts });
