@@ -104,7 +104,15 @@ export interface NftMintParams {
 	amount: number;
 	maxSupply?: number;
 	soulbound?: boolean;
-	properties?: string;
+	/**
+	 * Per-token properties. Same wire treatment as collection metadata:
+	 * the contract reads this key via `in.Raw()`, so the JSON object
+	 * goes on the wire as a raw object - NOT as a stringified string.
+	 * Pass either a plain object or a JSON string (parsed and re-injected
+	 * as an object). Convention: `{name, description, image}` for the
+	 * simple case, free-form for custom.
+	 */
+	properties?: string | Record<string, unknown>;
 	propertiesTemplate?: string;
 	data?: string;
 }
@@ -117,7 +125,8 @@ export function buildNftMint(ctx: NftOpContext, p: NftMintParams): NftOpBundle {
 	};
 	if (p.maxSupply !== undefined) payload.maxSupply = p.maxSupply;
 	if (p.soulbound !== undefined) payload.soulbound = p.soulbound;
-	if (p.properties !== undefined) payload.properties = p.properties;
+	const props = toMetadataObject(p.properties);
+	if (props) payload.properties = props;
 	if (p.propertiesTemplate !== undefined) payload.propertiesTemplate = p.propertiesTemplate;
 	return bundle(ctx, 'mint', payload);
 }
@@ -231,12 +240,21 @@ export function buildNftSetBaseUri(ctx: NftOpContext, p: { baseUri: string }): N
 	return bundle(ctx, 'setBaseURI', { baseUri: p.baseUri });
 }
 
-/** Owner-only: set per-token properties JSON. */
+/**
+ * Owner-only: set per-token properties JSON. Same wire format as
+ * `mint`'s `properties` field - the contract reads via `in.Raw()`,
+ * so the payload's `properties` key carries a raw JSON object,
+ * NOT a stringified-JSON-string.
+ */
 export function buildNftSetProperties(
 	ctx: NftOpContext,
-	p: { tokenId: string; properties: string }
+	p: { tokenId: string; properties: string | Record<string, unknown> }
 ): NftOpBundle {
-	return bundle(ctx, 'setProperties', { id: p.tokenId, properties: p.properties });
+	const props = toMetadataObject(p.properties);
+	if (!props) {
+		throw new Error('setProperties: `properties` must be a non-empty JSON object.');
+	}
+	return bundle(ctx, 'setProperties', { id: p.tokenId, properties: props });
 }
 
 /**
