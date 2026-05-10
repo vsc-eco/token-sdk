@@ -650,39 +650,7 @@ function DeployProgress({
 				})}
 			</div>
 
-			{logs.length > 0 && (
-				<pre
-					style={{
-						background: '#0f172a',
-						color: '#e2e8f0',
-						padding: '10px 12px',
-						borderRadius: '8px',
-						maxHeight: '240px',
-						overflowY: 'auto',
-						fontSize: '11.5px',
-						lineHeight: 1.45,
-						margin: 0,
-						fontFamily:
-							"'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
-					}}
-				>
-					{logs.map((l, i) => (
-						<div
-							key={i}
-							style={{
-								color:
-									l.level === 'ERROR'
-										? '#fca5a5'
-										: l.level === 'DEBUG'
-											? '#94a3b8'
-											: '#e2e8f0'
-							}}
-						>
-							{l.message}
-						</div>
-					))}
-				</pre>
-			)}
+			{logs.length > 0 && <DeployLogPane logs={logs} />}
 
 			{error && <p className="magi-nft-status error">{error}</p>}
 
@@ -728,5 +696,76 @@ function DeployProgress({
 				</button>
 			)}
 		</div>
+	);
+}
+
+/**
+ * Streaming log pane used by the deploy progress view. Sticks to the
+ * bottom whenever new lines arrive (so the latest output is always
+ * visible without manual scrolling), but releases the stick when the
+ * user scrolls up - that way someone reading earlier output doesn't get
+ * yanked back down by the next log line. Long lines wrap inside the
+ * pane instead of producing a horizontal scrollbar.
+ */
+function DeployLogPane({ logs }: { logs: DeployLogEntry[] }) {
+	const ref = useRef<HTMLPreElement>(null);
+	const stickRef = useRef(true);
+
+	useEffect(() => {
+		const el = ref.current;
+		if (!el || !stickRef.current) return;
+		// Use rAF so the DOM has the new line laid out before we measure.
+		const id = requestAnimationFrame(() => {
+			el.scrollTop = el.scrollHeight;
+		});
+		return () => cancelAnimationFrame(id);
+	}, [logs]);
+
+	function onScroll() {
+		const el = ref.current;
+		if (!el) return;
+		// 12px slack so a brief overshoot during smooth-scroll still
+		// counts as "at the bottom" - otherwise the stick can flicker off
+		// each time a new line lands.
+		stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 12;
+	}
+
+	return (
+		<pre
+			ref={ref}
+			onScroll={onScroll}
+			style={{
+				background: '#0f172a',
+				color: '#e2e8f0',
+				padding: '10px 12px',
+				borderRadius: '8px',
+				maxHeight: '240px',
+				overflowY: 'auto',
+				fontSize: '11.5px',
+				lineHeight: 1.45,
+				margin: 0,
+				whiteSpace: 'pre-wrap',
+				overflowWrap: 'anywhere',
+				wordBreak: 'break-word',
+				fontFamily:
+					"'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
+			}}
+		>
+			{logs.map((l, i) => (
+				<div
+					key={i}
+					style={{
+						color:
+							l.level === 'ERROR'
+								? '#fca5a5'
+								: l.level === 'DEBUG'
+									? '#94a3b8'
+									: '#e2e8f0'
+					}}
+				>
+					{l.message}
+				</div>
+			))}
+		</pre>
 	);
 }
