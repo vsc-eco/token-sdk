@@ -14,6 +14,7 @@ import { TokenTransferForm } from './actions/TokenTransferForm.js';
 import { TokenBurnForm } from './actions/TokenBurnForm.js';
 import { TokenMintForm } from './actions/TokenMintForm.js';
 import { MagiContractDeploy } from './MagiContractDeploy.js';
+import { RefreshButton } from './NftPanel.js';
 import { UserSearch } from './components/UserSearch.js';
 
 export interface MagiTokenPanelProps {
@@ -41,6 +42,10 @@ export interface MagiTokenPanelProps {
 	enableDeploy?: boolean;
 	/** Override the deployer service URL. Defaults to `config.deployerUrl`. */
 	deployerUrl?: string;
+	/** Render a refresh button in the panel's top-right corner. Default `true`. */
+	enableRefresh?: boolean;
+	/** External refresh trigger - bumping forces a reload from a parent. */
+	refreshSeq?: number;
 }
 
 type ActionState =
@@ -71,9 +76,12 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 		viewAccount,
 		enableUserSearch = true,
 		enableDeploy = true,
-		deployerUrl
+		deployerUrl,
+		enableRefresh = true,
+		refreshSeq
 	} = props;
 	const [deployOpen, setDeployOpen] = useState(false);
+	const [refreshing, setRefreshing] = useState(false);
 
 	const client = useMemo<NftClient>(
 		() => providedClient ?? createNftClient({ config, aioha, onBroadcast, keyType }),
@@ -121,16 +129,33 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 		client.token.provider
 			.getUserTokens(account)
 			.then((data) => {
-				if (!cancelled) setRows(data);
+				if (!cancelled) {
+					setRows(data);
+					setRefreshing(false);
+				}
 			})
 			.catch((err) => {
-				if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+				if (!cancelled) {
+					setError(err instanceof Error ? err.message : String(err));
+					setRefreshing(false);
+				}
 			});
 		return () => {
 			cancelled = true;
 		};
 	}, [account, client, reloadTick]);
 
+	useEffect(() => {
+		if (refreshSeq === undefined) return;
+		setRefreshing(true);
+		setReloadTick((n) => n + 1);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [refreshSeq]);
+
+	function handleRefresh() {
+		setRefreshing(true);
+		setReloadTick((n) => n + 1);
+	}
 	function handleSuccess(txId: string) {
 		setReloadTick((n) => n + 1);
 		onSuccess?.(txId);
@@ -141,6 +166,9 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 		: `magi-nft ${className ?? ''}`.trim();
 	return (
 		<div className={rootClass}>
+			{enableRefresh && account && (
+				<RefreshButton refreshing={refreshing} onClick={handleRefresh} />
+			)}
 			{!hideHeader && (
 				<div className="magi-nft-header">
 					<div className="magi-nft-badge">

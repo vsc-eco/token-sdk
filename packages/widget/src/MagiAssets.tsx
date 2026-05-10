@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MagiNftPanel, type MagiNftPanelProps } from './NftPanel.js';
+import { MagiNftPanel, RefreshButton, type MagiNftPanelProps } from './NftPanel.js';
 import { MagiTokenPanel } from './TokenPanel.js';
 import { MagiContractDeploy } from './MagiContractDeploy.js';
 import { UserSearch } from './components/UserSearch.js';
@@ -19,10 +19,17 @@ export function MagiAssets(props: MagiNftPanelProps) {
 	const [tab, setTab] = useState<'nfts' | 'tokens'>('nfts');
 	const enableUserSearch = props.enableUserSearch !== false;
 	const enableDeploy = props.enableDeploy !== false;
+	const enableRefresh = props.enableRefresh !== false;
 
 	const [searchInput, setSearchInput] = useState('');
 	const [internalView, setInternalView] = useState<string | undefined>(undefined);
 	const [deployOpen, setDeployOpen] = useState(false);
+	// Refresh sequence we forward to both inner panels - bumping it
+	// causes their `refreshSeq` watchers to fire a refetch. We also flip
+	// `refreshing` for ~900ms of icon spin so the button gives haptic-
+	// equivalent feedback even though we don't track per-panel completion.
+	const [refreshSeq, setRefreshSeq] = useState(0);
+	const [refreshing, setRefreshing] = useState(false);
 
 	const { effectiveView, readOnly, displayBare } = useMemo(() => {
 		const bareName = (s?: string) => s?.replace(/^(@|hive:)+/, '').toLowerCase() ?? null;
@@ -56,13 +63,29 @@ export function MagiAssets(props: MagiNftPanelProps) {
 		enableUserSearch: false,
 		// MagiAssets owns the deploy affordance for both tabs; suppress
 		// the inner panels' duplicates.
-		enableDeploy: false
+		enableDeploy: false,
+		// Same story for the refresh button - top-level only.
+		enableRefresh: false,
+		refreshSeq
 	};
+
+	function handleRefresh() {
+		setRefreshing(true);
+		setRefreshSeq((n) => n + 1);
+		// We don't track per-panel fetch completion here, so just spin
+		// for a short fixed window and re-enable. Both inner panels run
+		// their refreshes in parallel so by the time this clears the
+		// data has typically arrived.
+		setTimeout(() => setRefreshing(false), 900);
+	}
 
 	const showDeployButton = enableDeploy && !readOnly && !!props.username;
 
 	return (
 		<div className={`magi-nft ${props.className ?? ''}`}>
+			{enableRefresh && (
+				<RefreshButton refreshing={refreshing} onClick={handleRefresh} />
+			)}
 			<div className="magi-nft-header">
 				<div className="magi-nft-badge">
 					<span className="magi-nft-dot" />

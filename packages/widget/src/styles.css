@@ -127,6 +127,47 @@
 	margin: 0;
 }
 
+/* ==== Refresh button (top-right of every panel) ====
+ * Absolutely positioned inside the panel card so it sits in the corner
+ * without consuming a header slot. The .magi-nft / .magi-nft-bare
+ * containers are both `position: relative`, which anchors this. The
+ * icon spins while the panel is reloading; disabled state prevents
+ * queueing multiple refetches by mashing the button. */
+.magi-nft-refresh-btn {
+	position: absolute;
+	top: 0.85rem;
+	right: 0.85rem;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--magi-field-border);
+	background: var(--magi-card-bg);
+	color: var(--magi-text-secondary);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+	z-index: 2;
+}
+.magi-nft-refresh-btn:hover:not(:disabled) {
+	color: var(--magi-accent);
+	border-color: var(--magi-accent);
+	background: var(--magi-accent-light);
+}
+.magi-nft-refresh-btn:disabled {
+	cursor: progress;
+}
+.magi-nft-refresh-btn svg.spinning {
+	animation: magi-nft-spin 0.85s linear infinite;
+}
+.magi-nft-bare > .magi-nft-refresh-btn {
+	/* Hide the duplicate when nested inside MagiAssets (the parent
+	 * .magi-nft already shows its own button). */
+	display: none;
+}
+
 /* ==== Toolbar (search + deploy buttons) ====
  * The toolbar wraps the user search and any header-level action buttons
  * (currently just "Deploy") into a single row sitting between the panel

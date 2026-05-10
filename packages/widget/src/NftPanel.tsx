@@ -61,6 +61,22 @@ export interface MagiNftPanelProps {
 	enableDeploy?: boolean;
 	/** Override the deployer service URL. Defaults to `config.deployerUrl`. */
 	deployerUrl?: string;
+	/**
+	 * Render a small circular refresh button in the panel's top-right
+	 * corner. Default `true`. Clicking it re-runs every read (items,
+	 * images, template metadata, collection icons) without unmounting
+	 * the panel - so expanded-group state, scroll position, etc. survive
+	 * the refresh.
+	 */
+	enableRefresh?: boolean;
+	/**
+	 * External refresh trigger - bump this from a parent to force a
+	 * reload as if the user had clicked the refresh button. Internal use
+	 * mainly (MagiAssets uses it to drive both inner panels off a single
+	 * top-level button); hosts can use it too if they want a refresh
+	 * affordance outside the widget.
+	 */
+	refreshSeq?: number;
 }
 
 type ActionState =
@@ -148,9 +164,12 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 		viewAccount,
 		enableUserSearch = true,
 		enableDeploy = true,
-		deployerUrl
+		deployerUrl,
+		enableRefresh = true,
+		refreshSeq
 	} = props;
 	const [deployOpen, setDeployOpen] = useState(false);
+	const [refreshing, setRefreshing] = useState(false);
 
 	const client = useMemo<NftClient>(() => {
 		return providedClient ?? createNftClient({ config, aioha, onBroadcast, keyType });
@@ -253,15 +272,44 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 						}
 						return next;
 					});
+					setRefreshing(false);
 				}
 			})
 			.catch((err) => {
-				if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+				if (!cancelled) {
+					setError(err instanceof Error ? err.message : String(err));
+					setRefreshing(false);
+				}
 			});
 		return () => {
 			cancelled = true;
 		};
 	}, [account, client, reloadTick]);
+
+	// External-trigger watcher: when MagiAssets (or any host) bumps
+	// `refreshSeq`, treat it as a click of our own refresh button.
+	useEffect(() => {
+		if (refreshSeq === undefined) return;
+		setRefreshing(true);
+		// Also clear cached image / icon / template-meta state so a stale
+		// blob doesn't survive a refresh just because its key was already
+		// in the cache map.
+		setImageUrls({});
+		setCollectionIcons({});
+		setTemplateMeta({});
+		setReloadTick((n) => n + 1);
+		// Intentionally only watching refreshSeq - we explicitly don't
+		// want to fire on first mount when refreshSeq is undefined.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [refreshSeq]);
+
+	function handleRefresh() {
+		setRefreshing(true);
+		setImageUrls({});
+		setCollectionIcons({});
+		setTemplateMeta({});
+		setReloadTick((n) => n + 1);
+	}
 
 	// Fetch collection-level icons (from the `collection_metadata` state
 	// blob) once we know which collections the user holds. One getStateByKeys
@@ -423,6 +471,9 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 
 	return (
 		<div className={rootClass}>
+			{enableRefresh && account && (
+				<RefreshButton refreshing={refreshing} onClick={handleRefresh} />
+			)}
 			{!hideHeader && (
 				<div className="magi-nft-header">
 					<div className="magi-nft-badge">
@@ -792,6 +843,48 @@ function MintIcon() {
 			<line x1="12" y1="5" x2="12" y2="19" />
 			<line x1="5" y1="12" x2="19" y2="12" />
 		</svg>
+	);
+}
+
+/**
+ * Small circular refresh button positioned in the panel's top-right
+ * corner. Spins for the duration of the in-flight refresh; disabled
+ * while spinning so a user smashing it doesn't queue ten refetches.
+ * Re-used by every panel via the same `<RefreshButton>` import.
+ */
+export function RefreshButton({
+	refreshing,
+	onClick
+}: {
+	refreshing: boolean;
+	onClick: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			className="magi-nft-refresh-btn"
+			title={refreshing ? 'Refreshing…' : 'Refresh'}
+			aria-label="Refresh"
+			onClick={onClick}
+			disabled={refreshing}
+		>
+			<svg
+				className={refreshing ? 'spinning' : undefined}
+				width="14"
+				height="14"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			>
+				<polyline points="23 4 23 10 17 10" />
+				<polyline points="1 20 1 14 7 14" />
+				<path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+				<path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
+			</svg>
+		</button>
 	);
 }
 
