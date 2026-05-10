@@ -11,6 +11,11 @@ export { MagiNftPanel, type MagiNftPanelProps } from './NftPanel.js';
 export const magiFallbackImage: string = magiSvg;
 export { MagiTokenPanel, type MagiTokenPanelProps } from './TokenPanel.js';
 export { MagiAssets } from './MagiAssets.js';
+export {
+	MagiContractDeploy,
+	type MagiContractDeployProps,
+	type DeployContractType
+} from './MagiContractDeploy.js';
 export { NftActionButton, type NftActionButtonProps } from './NftActionButton.js';
 export { NftTransferForm, type NftTransferFormProps } from './actions/NftTransferForm.js';
 export { NftBurnForm, type NftBurnFormProps } from './actions/NftBurnForm.js';

@@ -2,6 +2,10 @@ import r2wc from '@r2wc/react-to-web-component';
 import { MagiNftPanel, type MagiNftPanelProps } from './NftPanel.js';
 import { MagiTokenPanel, type MagiTokenPanelProps } from './TokenPanel.js';
 import { MagiAssets } from './MagiAssets.js';
+import {
+	MagiContractDeploy,
+	type MagiContractDeployProps
+} from './MagiContractDeploy.js';
 import './styles.css';
 
 /**
@@ -65,14 +69,36 @@ const AssetsElement = r2wc(MagiAssets as unknown as (p: MagiNftPanelProps) => JS
 	}
 });
 
+const ContractDeployElement = r2wc(
+	MagiContractDeploy as unknown as (p: MagiContractDeployProps) => JSX.Element,
+	{
+		props: {
+			username: 'string',
+			defaultType: 'string',
+			lockType: 'string',
+			serviceUrl: 'string',
+			className: 'string',
+			aioha: 'json',
+			onBroadcast: 'function',
+			keyType: 'json',
+			config: 'json',
+			client: 'json',
+			onClose: 'function',
+			onSuccess: 'function'
+		}
+	}
+);
+
 if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
 	if (!customElements.get('magi-nft-panel')) customElements.define('magi-nft-panel', NftPanelElement);
 	if (!customElements.get('magi-token-panel')) customElements.define('magi-token-panel', TokenPanelElement);
 	if (!customElements.get('magi-assets')) customElements.define('magi-assets', AssetsElement);
+	if (!customElements.get('magi-contract-deploy')) customElements.define('magi-contract-deploy', ContractDeployElement);
 }
 
 export {
 	NftPanelElement as MagiNftPanelElement,
 	TokenPanelElement as MagiTokenPanelElement,
-	AssetsElement as MagiAssetsElement
+	AssetsElement as MagiAssetsElement,
+	ContractDeployElement as MagiContractDeployElement
 };

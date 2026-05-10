@@ -14,6 +14,7 @@ import { Modal } from './components/Modal.js';
 import { NftTransferForm } from './actions/NftTransferForm.js';
 import { NftBurnForm } from './actions/NftBurnForm.js';
 import { NftBatchTransferForm } from './actions/NftBatchTransferForm.js';
+import { NftMintForm } from './actions/NftMintForm.js';
 import { UserSearch } from './components/UserSearch.js';
 import magiFallbackSvg from './assets/magi.svg';
 
@@ -56,6 +57,7 @@ type ActionState =
 	| { kind: 'transfer'; item: NftItem }
 	| { kind: 'burn'; item: NftItem }
 	| { kind: 'batch'; contractId: string; items: NftItem[] }
+	| { kind: 'mint'; collection: NftItem['collection'] }
 	| null;
 
 interface CollectionGroup {
@@ -499,6 +501,19 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 									<BatchIcon />
 								</button>
 							)}
+							{!readOnly && isOwnedCollection(g, username) && (
+								<button
+									type="button"
+									className="magi-nft-icon-btn"
+									title="Mint into this collection"
+									onClick={(e) => {
+										e.stopPropagation();
+										setAction({ kind: 'mint', collection: g.items[0].collection });
+									}}
+								>
+									<MintIcon />
+								</button>
+							)}
 						</div>
 
 						{isExpanded && (
@@ -566,6 +581,15 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					client={client}
 					username={username}
 					item={action.item}
+					onSuccess={handleSuccess}
+					onClose={() => setAction(null)}
+				/>
+			)}
+			{!readOnly && action?.kind === 'mint' && username && (
+				<NftMintForm
+					client={client}
+					username={username}
+					collection={action.collection}
 					onSuccess={handleSuccess}
 					onClose={() => setAction(null)}
 				/>
@@ -713,6 +737,28 @@ function BatchIcon() {
 			<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
 		</svg>
 	);
+}
+function MintIcon() {
+	return (
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+			<line x1="12" y1="5" x2="12" y2="19" />
+			<line x1="5" y1="12" x2="19" y2="12" />
+		</svg>
+	);
+}
+
+/**
+ * Bare-name match between the collection's `owner` field and the
+ * connected user. Both `hive:alice` and `alice` flow through the
+ * okinoko/Magi codebase; treat them as equivalent.
+ */
+function isOwnedCollection(group: CollectionGroup, username: string | undefined): boolean {
+	if (!username) return false;
+	const owner = group.items[0]?.collection.owner;
+	if (!owner) return false;
+	const ownerBare = owner.replace(/^(@|hive:)+/, '').toLowerCase();
+	const userBare = username.replace(/^(@|hive:)+/, '').toLowerCase();
+	return ownerBare === userBare;
 }
 
 interface TemplateTileProps {

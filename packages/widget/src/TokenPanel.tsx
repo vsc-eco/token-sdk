@@ -12,6 +12,7 @@ import {
 } from '@vsc.eco/nft-sdk';
 import { TokenTransferForm } from './actions/TokenTransferForm.js';
 import { TokenBurnForm } from './actions/TokenBurnForm.js';
+import { TokenMintForm } from './actions/TokenMintForm.js';
 import { UserSearch } from './components/UserSearch.js';
 
 export interface MagiTokenPanelProps {
@@ -40,7 +41,15 @@ export interface MagiTokenPanelProps {
 type ActionState =
 	| { kind: 'send'; row: TokenBalance & { info: TokenInfo } }
 	| { kind: 'burn'; row: TokenBalance & { info: TokenInfo } }
+	| { kind: 'mint'; row: TokenBalance & { info: TokenInfo } }
 	| null;
+
+function isOwnedToken(info: TokenInfo, username: string | undefined): boolean {
+	if (!username) return false;
+	const ownerBare = (info.owner ?? '').replace(/^(@|hive:)+/, '').toLowerCase();
+	const userBare = username.replace(/^(@|hive:)+/, '').toLowerCase();
+	return !!ownerBare && ownerBare === userBare;
+}
 
 export function MagiTokenPanel(props: MagiTokenPanelProps) {
 	const {
@@ -182,6 +191,16 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 							</div>
 							{!readOnly && (
 								<div className="magi-nft-token-actions">
+									{isOwnedToken(row.info, username) && (
+										<button
+											type="button"
+											className="magi-nft-icon-btn"
+											title="Issue (mint)"
+											onClick={() => setAction({ kind: 'mint', row })}
+										>
+											<MintIcon />
+										</button>
+									)}
 									<button
 										type="button"
 										className="magi-nft-icon-btn"
@@ -215,6 +234,15 @@ export function MagiTokenPanel(props: MagiTokenPanelProps) {
 					onClose={() => setAction(null)}
 				/>
 			)}
+			{!readOnly && action?.kind === 'mint' && username && (
+				<TokenMintForm
+					client={client}
+					username={username}
+					info={action.row.info}
+					onSuccess={handleSuccess}
+					onClose={() => setAction(null)}
+				/>
+			)}
 			{!readOnly && action?.kind === 'burn' && username && (
 				<TokenBurnForm
 					client={client}
@@ -234,6 +262,14 @@ function SendIcon() {
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 			<line x1="22" y1="2" x2="11" y2="13" />
 			<polygon points="22 2 15 22 11 13 2 9 22 2" />
+		</svg>
+	);
+}
+function MintIcon() {
+	return (
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+			<line x1="12" y1="5" x2="12" y2="19" />
+			<line x1="5" y1="12" x2="19" y2="12" />
 		</svg>
 	);
 }

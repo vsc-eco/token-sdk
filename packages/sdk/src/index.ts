@@ -78,6 +78,21 @@ export {
 	tokenPropsKey,
 	buildBaseUriImage
 } from './nftProvider.js';
+export {
+	createDeployerClient,
+	substituteDeployerOps
+} from './deployer.js';
+export type {
+	DeployerClient,
+	DeployedCode,
+	DeployerOp,
+	DeployLogEntry,
+	DeployResult,
+	DeployTag,
+	PrepareDeployParams,
+	PrepareDeployResponse,
+	CreateDeployerClientOptions
+} from './deployer.js';
 export type { NftProvider } from './nftProvider.js';
 export type { TokenProvider } from './tokenProvider.js';
 

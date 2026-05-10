@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Aioha, KeyTypes, type Providers } from '@aioha/aioha';
 import {
 	MagiAssets,
+	MagiContractDeploy,
 	MagiNftPanel,
 	MagiTokenPanel,
 	magiFallbackImage
@@ -72,6 +73,7 @@ function DemoApp() {
 
 	const themedClass = theme === 'dark' ? 'magi-nft-altera-host' : '';
 	const connected = !!username;
+	const [deployOpen, setDeployOpen] = useState(false);
 
 	return (
 		<>
@@ -309,6 +311,66 @@ function DemoApp() {
 					/>
 				)}
 			</div>
+
+			{/* ============== Deploy + init ============== */}
+
+			<h2>
+				Deploying a new contract - <code>&lt;MagiContractDeploy&gt;</code>
+			</h2>
+			<p>
+				Optional dialog that combines{' '}
+				<a
+					href="https://github.com/vsc-eco/magi_nft-contract"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					magi_nft-contract
+				</a>{' '}
+				/{' '}
+				<a
+					href="https://github.com/vsc-eco/magi_token-contract"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					magi_token-contract
+				</a>{' '}
+				deployment with the contract's <code>init()</code> call into a single
+				flow: build the wasm on the deployer backend, sign one deploy transaction,
+				wait for the indexer to register the new contract id, sign one init
+				transaction. The default endpoint is{' '}
+				<code>{MAINNET_CONFIG.deployerUrl}</code> - override via{' '}
+				<code>serviceUrl="https://your-deployer..."</code> to point at your own
+				instance. Templates are filtered by tag (<code>nft</code> /{' '}
+				<code>token</code>) so the form only offers the right wasm builds.
+			</p>
+			<pre className="code">
+				<Code>{DEPLOY_SNIPPET}</Code>
+			</pre>
+			<p>
+				Live trigger below. Requires a connected wallet (the deploy fee is paid
+				via Aioha) and broadcasts <strong>real</strong> deploy + init
+				transactions on mainnet.
+			</p>
+			<div className="live">
+				<button
+					className="magi-nft-submit"
+					style={{ maxWidth: 280 }}
+					disabled={!connected}
+					onClick={() => setDeployOpen(true)}
+				>
+					{connected ? 'Open deploy dialog' : 'Connect wallet to deploy'}
+				</button>
+			</div>
+			{deployOpen && (
+				<MagiContractDeploy
+					aioha={aioha ?? undefined}
+					username={username}
+					keyType={KeyTypes.Active}
+					onClose={() => setDeployOpen(false)}
+					onSuccess={(r) => setLastTx(r.initTxId)}
+					className={themedClass}
+				/>
+			)}
 
 			{/* ============== Locked / profile mode ============== */}
 
@@ -725,6 +787,30 @@ import '@vsc.eco/nft-widget/styles.css';
   keyType={KeyTypes.Active}
   onSuccess={(txId) => console.log(txId)}
 />`;
+
+const DEPLOY_SNIPPET = `import { MagiContractDeploy } from '@vsc.eco/nft-widget';
+import '@vsc.eco/nft-widget/styles.css';
+
+// Single dialog: deploy wasm -> sign deploy tx -> wait for the contract
+// to be indexed -> sign init tx with the same form's name/symbol/etc.
+// Closes by itself when the user clicks Done; onSuccess fires once both
+// txs are broadcast and the new contract id is known.
+{deployOpen && (
+  <MagiContractDeploy
+    aioha={aiohaInstance}
+    username="alice"
+    keyType={KeyTypes.Active}
+    // serviceUrl="https://your-deployer.example.com"  // optional
+    // defaultType="nft"                                // or "token"
+    // lockType="nft"                                   // hide the tab strip
+    onClose={() => setDeployOpen(false)}
+    onSuccess={({ contractId, deployTxId, initTxId, type }) => {
+      console.log(\`Deployed \${type} \${contractId}\`);
+      console.log('deploy tx', deployTxId);
+      console.log('init tx', initTxId);
+    }}
+  />
+)}`;
 
 const LOCKED_SNIPPET = `// Lock to the connected user, no search input.
 // Useful for personal dashboards where the user can't switch identities.
