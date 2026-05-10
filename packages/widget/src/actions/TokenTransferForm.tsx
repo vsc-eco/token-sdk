@@ -22,6 +22,13 @@ export interface TokenTransferFormProps {
 type Mode = 'single' | 'distribute';
 
 /**
+ * Recipients per signed chunk. Has to clear Keychain + Aioha-provider
+ * limits AND the L1 node's per-tx op-count cap; 10 fits well under all
+ * three. Mirrored as the default in `client.broadcastBatch`.
+ */
+const CHUNK_SIZE = 10;
+
+/**
  * Parse a free-form recipient list (any of `tibfox`, `@tibfox`,
  * `hive:tibfox`, comma- newline- or space-delimited) into a normalised
  * `hive:bare` username list with duplicates removed.
@@ -153,12 +160,16 @@ export function TokenTransferForm({
 		const bundles: TokenOpBundle[] = recipients.map((to) =>
 			client.token.transferOp(info.contractId, username, { to, amount })
 		);
-		// Try one-signature bundled tx first - falls back to sequential
-		// inside `client.broadcastBatch` when the signer can't bundle
-		// (e.g. an onBroadcast hook that takes one op at a time).
-		setProgress({ done: 0, total: bundles.length });
+		// Chunk into CHUNK_SIZE-sized signatures - Hive caps per-tx op
+		// counts and Keychain rejects oversized custom_json batches, so
+		// 50 recipients become 5 sequential signatures rather than one
+		// rejected mega-tx. SDK falls back to per-bundle sequential
+		// when an onBroadcast hook is in play.
+		const chunks = Math.ceil(bundles.length / CHUNK_SIZE);
+		setProgress({ done: 0, total: chunks });
 		const res = await client.broadcastBatch(bundles, {
-			onProgress: (i) => setProgress({ done: i + 1, total: bundles.length })
+			chunkSize: CHUNK_SIZE,
+			onProgress: (i) => setProgress({ done: i + 1, total: chunks })
 		});
 		setTxIds(res.txIds);
 		setProgress(null);
@@ -184,7 +195,7 @@ export function TokenTransferForm({
 
 	const submitLabel = (() => {
 		if (submitting) {
-			if (progress) return `Sending ${progress.done}/${progress.total}…`;
+			if (progress) return `Signing batch ${progress.done}/${progress.total}…`;
 			return mode === 'distribute' ? 'Distributing…' : 'Sending…';
 		}
 		if (mode === 'distribute') {
@@ -192,6 +203,8 @@ export function TokenTransferForm({
 		}
 		return `Send ${info.symbol}`;
 	})();
+	const distributeChunks =
+		recipients.length > 0 ? Math.ceil(recipients.length / CHUNK_SIZE) : 0;
 
 	return (
 		<Modal
@@ -280,8 +293,11 @@ export function TokenTransferForm({
 						margin: '0.1rem 0'
 					}}
 				>
-					Will sign {recipients.length} transfer{recipients.length === 1 ? '' : 's'}
-					{recipients.length > 1 ? ' (bundled into one transaction when your signer supports it)' : ''}.
+					{distributeChunks === 1
+						? `Will sign 1 transaction with ${recipients.length} transfer${recipients.length === 1 ? '' : 's'}.`
+						: `Will sign ${distributeChunks} transactions (${CHUNK_SIZE} transfers each, last one ${
+								recipients.length % CHUNK_SIZE || CHUNK_SIZE
+							}).`}
 				</p>
 			)}
 

@@ -257,26 +257,38 @@ export interface NftClient {
 	broadcast(bundle: NftOpBundle | TokenOpBundle): Promise<BroadcastResult>;
 	/**
 	 * Broadcast multiple bundles. When the host's signer supports
-	 * `signAndBroadcastTx` (Aioha does), all ops are bundled into ONE
-	 * Hive transaction so the user signs once. Otherwise each bundle is
-	 * broadcast sequentially via the single-op path. Returns the txId
-	 * (or txIds, when sequential) and a per-bundle status array so
-	 * callers can show progress.
+	 * `signAndBroadcastTx` (Aioha does), bundles are grouped into
+	 * `chunkSize`-sized Hive transactions so the user signs
+	 * `ceil(N / chunkSize)` times - Keychain / HiveSigner and the L1
+	 * node itself cap the ops per tx, so dumping 50+ ops into a single
+	 * transaction will be rejected. When the signer can't bundle (only
+	 * an `onBroadcast` hook), each bundle is broadcast individually.
+	 *
+	 * Returns one txId per chunk (or per bundle in sequential mode),
+	 * plus a per-chunk progress callback so callers can render
+	 * "Signing 2/4…".
 	 */
 	broadcastBatch(
 		bundles: Array<NftOpBundle | TokenOpBundle>,
 		opts?: {
 			/**
-			 * Forces sequential per-bundle broadcasts even when the signer
-			 * supports `signAndBroadcastTx`. Useful when the caller wants a
-			 * separate txid per recipient (e.g. for per-row receipts).
+			 * Forces per-bundle broadcasts (one signature per bundle) even
+			 * when the signer supports `signAndBroadcastTx`. Useful when
+			 * the caller wants a separate txid per recipient.
 			 */
 			sequential?: boolean;
-			/** Called once per bundle when sequential broadcasting. */
+			/**
+			 * Number of ops to bundle into a single Hive transaction.
+			 * Default 10 - well below the Keychain / Aioha provider caps
+			 * but high enough that a typical 50-recipient airdrop becomes
+			 * 5 signatures rather than 50.
+			 */
+			chunkSize?: number;
+			/** Called once per chunk (or per bundle in sequential mode). */
 			onProgress?: (i: number, total: number, txId: string) => void;
 		}
 	): Promise<{
-		/** Bundled mode: one txId. Sequential mode: one per bundle. */
+		/** One txId per signed chunk (or per bundle when sequential). */
 		txIds: string[];
 		bundles: Array<NftOpBundle | TokenOpBundle>;
 	}>;
@@ -338,6 +350,7 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 		bundles: Array<NftOpBundle | TokenOpBundle>,
 		opts: {
 			sequential?: boolean;
+			chunkSize?: number;
 			onProgress?: (i: number, total: number, txId: string) => void;
 		} = {}
 	): Promise<{
@@ -347,27 +360,39 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 		if (bundles.length === 0) {
 			return { txIds: [], bundles };
 		}
-		// Sequential path: one tx per bundle. Used when the caller asks
-		// for it explicitly OR when the signer can't bundle (no
-		// signAndBroadcastTx surface and the broadcast path falls
-		// through to onBroadcast / vscCallContract).
+		const chunkSize = Math.max(1, Math.floor(opts.chunkSize ?? 10));
+		// Bundled path: group ops into chunks small enough to clear the
+		// Keychain / Aioha-provider caps and the L1 node's per-tx
+		// op-count limit, then sign each chunk separately. We use this
+		// path whenever (a) the caller didn't force sequential AND (b)
+		// the signer surfaces signAndBroadcastTx (Aioha does, custom
+		// onBroadcast hooks don't).
 		const canBundle =
 			!opts.sequential &&
 			!onBroadcast &&
 			!!aioha &&
 			typeof aioha.signAndBroadcastTx === 'function';
 		if (canBundle) {
-			const ops = bundles.map((b) => b.op as unknown);
-			const res = await aioha!.signAndBroadcastTx!(ops, keyType);
-			if (!res.success || typeof res.result !== 'string') {
-				throw new Error(`signAndBroadcastTx failed: ${res.error ?? 'unknown'}`);
+			const txIds: string[] = [];
+			const totalChunks = Math.ceil(bundles.length / chunkSize);
+			for (let i = 0; i < bundles.length; i += chunkSize) {
+				const chunk = bundles.slice(i, i + chunkSize);
+				const ops = chunk.map((b) => b.op as unknown);
+				const res = await aioha!.signAndBroadcastTx!(ops, keyType);
+				if (!res.success || typeof res.result !== 'string') {
+					// Stop on first failure - the caller surfaces the
+					// txIds we did get and lets the user retry the rest.
+					throw new Error(
+						`signAndBroadcastTx failed on chunk ${Math.floor(i / chunkSize) + 1}/${totalChunks}: ${res.error ?? 'unknown'}`
+					);
+				}
+				txIds.push(res.result);
+				opts.onProgress?.(txIds.length - 1, totalChunks, res.result);
 			}
-			return { txIds: [res.result], bundles };
+			return { txIds, bundles };
 		}
-		// Sequential fallback. Stops on first failure - the caller is
-		// responsible for deciding what to do with partial success
-		// (typically: surface the txIds we did get and let the user
-		// retry the rest).
+		// Sequential fallback - one tx per bundle. Same partial-success
+		// semantics: stop on first error, surface what we have.
 		const txIds: string[] = [];
 		for (let i = 0; i < bundles.length; i++) {
 			const r = await broadcast(bundles[i]);
