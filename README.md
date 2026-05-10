@@ -35,6 +35,7 @@ import {
   NftBatchTransferForm,       // multi-id batch transfer + distribute
   NftBurnForm,
   NftMintForm,                // owner-only, simple/custom-JSON properties
+  NftIncreaseSupplyForm,      // owner-only, "mint more" of an existing editioned tokenId
   NftEditCollectionForm,      // owner-only, baseUri / metadata / ownership
   // Token actions
   TokenTransferForm,          // single-recipient + distribute
@@ -201,7 +202,7 @@ const client = createNftClient({ aioha });
 ## Highlights of what the panels do for you
 
 - **Deploy + init in one flow** — `MagiContractDeploy` posts a build request to `deploy.okinoko.io`, streams the build log via SSE (auto-scroll, word-wrap, stage-pill progress, circular spinner during `building` / `waiting-contract`), polls the indexer for the new `contractId` (filtered by creator + creation timestamp so you only ever see *your* deployment), then opens the init dialog with sensible defaults. NFT init takes name / symbol / baseUri / description / collection icon URL or custom JSON; token init takes name / symbol / decimals.
-- **Owner affordances** — pencil icon on collections you own opens `NftEditCollectionForm` (baseUri, simple `{description, icon}` or custom JSON metadata, optional ownership transfer under "Show advanced"); plus icon opens `NftMintForm` with the same simple/custom-JSON properties toggle as okinoko's `NftPropertiesInput`.
+- **Owner affordances** — pencil icon on collections you own opens `NftEditCollectionForm` (baseUri, simple `{description, icon}` or custom JSON metadata, optional ownership transfer under "Show advanced"); plus icon opens `NftMintForm` with the same simple/custom-JSON properties toggle as okinoko's `NftPropertiesInput`. Per-tile stack icon on editioned NFTs opens `NftIncreaseSupplyForm` to mint additional copies of an existing tokenId — only shown when there's headroom under `maxSupply`.
 - **Distribute paths** — every transfer form has a "Distribute" tab when applicable. Token transfer always; NFT batch transfer always; single-NFT transfer when the token is editioned (`!isUnique && balance >= 2`). Each recipient becomes its own `safeTransferFrom` op, chunked + inter-block-delayed via `client.broadcastBatch`.
 - **Hive per-block cap handled** — Hive accepts ~5 `custom_json` ops per account per block. The widget signs in chunks of 4 and waits 4s between chunks so each signed batch lands in a fresh block. Submit label cycles `Signing batch K/N…` → `Waiting for next block (Ts)…`.
 - **Empty inventories still useful** — collections you own with 0 NFTs are listed (so you can mint into them without first holding one), and tokens you deployed before any supply exists show up in the token panel.

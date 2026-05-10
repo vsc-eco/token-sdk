@@ -16,6 +16,7 @@ import { NftTransferForm } from './actions/NftTransferForm.js';
 import { NftBurnForm } from './actions/NftBurnForm.js';
 import { NftBatchTransferForm } from './actions/NftBatchTransferForm.js';
 import { NftEditCollectionForm } from './actions/NftEditCollectionForm.js';
+import { NftIncreaseSupplyForm } from './actions/NftIncreaseSupplyForm.js';
 import { NftMintForm } from './actions/NftMintForm.js';
 import { MagiContractDeploy } from './MagiContractDeploy.js';
 import { UserSearch } from './components/UserSearch.js';
@@ -86,6 +87,7 @@ type ActionState =
 	| { kind: 'burn'; item: NftItem }
 	| { kind: 'batch'; contractId: string; items: NftItem[] }
 	| { kind: 'mint'; collection: NftItem['collection'] }
+	| { kind: 'mintMore'; item: NftItem }
 	| { kind: 'edit'; collection: NftItem['collection'] }
 	| null;
 
@@ -687,8 +689,10 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 													imageUrls[`${it.contractId}:${it.tokenId}`] ?? null
 												}
 												readOnly={readOnly}
+												isOwner={isOwnedCollection(g, username)}
 												onTransfer={() => setAction({ kind: 'transfer', item: it })}
 												onBurn={() => setAction({ kind: 'burn', item: it })}
+												onMintMore={() => setAction({ kind: 'mintMore', item: it })}
 											/>
 										);
 									}
@@ -769,6 +773,15 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					onClose={() => setAction(null)}
 				/>
 			)}
+			{!readOnly && action?.kind === 'mintMore' && username && (
+				<NftIncreaseSupplyForm
+					client={client}
+					username={username}
+					item={action.item}
+					onSuccess={handleSuccess}
+					onClose={() => setAction(null)}
+				/>
+			)}
 			{!readOnly && action?.kind === 'edit' && username && (
 				<NftEditCollectionForm
 					client={client}
@@ -809,6 +822,15 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					imageUrls={imageUrls}
 					readOnly={readOnly}
 					hasSigner={!!username}
+					isOwner={
+						// Look up the parent collection group's ownership flag - the
+						// template can only host an isOwner=true row if the user
+						// owns the contract that the template lives in.
+						(() => {
+							const g = groups.find((g) => g.contractId === expandedTemplate.contractId);
+							return g ? isOwnedCollection(g, username) : false;
+						})()
+					}
 					onTransfer={(item) => {
 						setExpandedTemplate(null);
 						setAction({ kind: 'transfer', item });
@@ -816,6 +838,10 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					onBurn={(item) => {
 						setExpandedTemplate(null);
 						setAction({ kind: 'burn', item });
+					}}
+					onMintMore={(item) => {
+						setExpandedTemplate(null);
+						setAction({ kind: 'mintMore', item });
 					}}
 					onBatchTransfer={() => {
 						const cid = expandedTemplate.contractId;
@@ -834,11 +860,36 @@ interface TileProps {
 	item: NftItem;
 	imageUrl: string | null;
 	readOnly: boolean;
+	/** True when the viewer owns the contract — gates the "mint more" button. */
+	isOwner?: boolean;
 	onTransfer: () => void;
 	onBurn: () => void;
+	onMintMore?: () => void;
 }
 
-function NftTile({ item, imageUrl, readOnly, onTransfer, onBurn }: TileProps) {
+function NftTile({
+	item,
+	imageUrl,
+	readOnly,
+	isOwner,
+	onTransfer,
+	onBurn,
+	onMintMore
+}: TileProps) {
+	// "Mint more" only makes sense for editioned tokens with headroom
+	// left under maxSupply. Unique tokens (maxSupply === 1) and tokens
+	// already at max can't accept new copies, so we hide the button to
+	// keep the tile uncluttered.
+	const headroom =
+		typeof item.currentSupply === 'number'
+			? Math.max(0, item.maxSupply - item.currentSupply)
+			: null;
+	const canMintMore =
+		!!isOwner &&
+		!!onMintMore &&
+		!item.isUnique &&
+		!item.soulbound &&
+		(headroom === null || headroom > 0);
 	const tag = item.isUnique ? 'Unique' : item.soulbound ? 'SBT' : 'Editioned';
 	const [imgFailed, setImgFailed] = useState(false);
 	const useFallback = !imageUrl || imgFailed;
@@ -899,9 +950,46 @@ function NftTile({ item, imageUrl, readOnly, onTransfer, onBurn }: TileProps) {
 					>
 						<BurnIcon />
 					</button>
+					{canMintMore && (
+						<button
+							type="button"
+							className="magi-token-icon-btn"
+							title={
+								headroom !== null
+									? `Mint more copies (${headroom} left under max supply)`
+									: 'Mint more copies of this token'
+							}
+							onClick={(e) => {
+								e.stopPropagation();
+								onMintMore?.();
+							}}
+						>
+							<MintMoreIcon />
+						</button>
+					)}
 				</div>
 			)}
 		</div>
+	);
+}
+
+function MintMoreIcon() {
+	return (
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 16 16"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.6"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
+			{/* Stack-of-cards style: two squares offset, with a "+" on the front one. */}
+			<rect x="4.5" y="2" width="9" height="9" rx="1.4" />
+			<path d="M2.5 5v8.5A1.5 1.5 0 0 0 4 15h8.5" />
+			<path d="M9 4.5v6M6 7.5h6" />
+		</svg>
 	);
 }
 
@@ -1066,8 +1154,11 @@ interface TemplateExpansionModalProps {
 	imageUrls: Record<string, string | null>;
 	readOnly: boolean;
 	hasSigner: boolean;
+	/** Caller owns this contract — gates the per-row "mint more" button. */
+	isOwner: boolean;
 	onTransfer: (item: NftItem) => void;
 	onBurn: (item: NftItem) => void;
+	onMintMore: (item: NftItem) => void;
 	onBatchTransfer: () => void;
 	onClose: () => void;
 }
@@ -1086,8 +1177,10 @@ function TemplateExpansionModal({
 	imageUrls,
 	readOnly,
 	hasSigner,
+	isOwner,
 	onTransfer,
 	onBurn,
+	onMintMore,
 	onBatchTransfer,
 	onClose
 }: TemplateExpansionModalProps) {
@@ -1121,8 +1214,10 @@ function TemplateExpansionModal({
 						item={it}
 						imageUrl={imageUrls[`${contractId}:${it.tokenId}`] ?? null}
 						readOnly={readOnly}
+						isOwner={isOwner}
 						onTransfer={() => onTransfer(it)}
 						onBurn={() => onBurn(it)}
+						onMintMore={() => onMintMore(it)}
 					/>
 				))}
 			</div>
@@ -1134,15 +1229,25 @@ function TemplateItemRow({
 	item,
 	imageUrl,
 	readOnly,
+	isOwner,
 	onTransfer,
-	onBurn
+	onBurn,
+	onMintMore
 }: {
 	item: NftItem;
 	imageUrl: string | null;
 	readOnly: boolean;
+	isOwner: boolean;
 	onTransfer: () => void;
 	onBurn: () => void;
+	onMintMore: () => void;
 }) {
+	const headroom =
+		typeof item.currentSupply === 'number'
+			? Math.max(0, item.maxSupply - item.currentSupply)
+			: null;
+	const canMintMore =
+		isOwner && !item.isUnique && !item.soulbound && (headroom === null || headroom > 0);
 	const [imgFailed, setImgFailed] = useState(false);
 	const useFallback = !imageUrl || imgFailed;
 	return (
@@ -1186,6 +1291,20 @@ function TemplateItemRow({
 					>
 						<BurnIcon />
 					</button>
+					{canMintMore && (
+						<button
+							type="button"
+							className="magi-token-icon-btn"
+							title={
+								headroom !== null
+									? `Mint more copies (${headroom} left under max supply)`
+									: 'Mint more copies of this token'
+							}
+							onClick={onMintMore}
+						>
+							<MintMoreIcon />
+						</button>
+					)}
 				</div>
 			)}
 		</div>

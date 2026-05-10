@@ -68,6 +68,7 @@ import {
   NftBatchTransferForm,       // multi-id batch + distribute tab
   NftBurnForm,
   NftMintForm,                // owner-only, simple/custom-JSON properties toggle
+  NftIncreaseSupplyForm,      // owner-only, "mint more" of an existing editioned tokenId
   NftEditCollectionForm,      // owner-only, baseUri / metadata / ownership transfer
   // Token
   TokenTransferForm,          // single-recipient + distribute tab
@@ -96,6 +97,7 @@ When a user views a collection they own:
 
 - The collection header shows a pencil icon → `NftEditCollectionForm` (baseUri, simple `{description, icon}` or custom JSON, optional ownership transfer under "Show advanced" — only signs ops for fields that actually changed).
 - The collection header shows a plus icon → `NftMintForm` (recipient, token id, amount, max supply, soulbound, properties via simple `{name, description, image}` or custom JSON; mirrors okinoko's `NftPropertiesInput`).
+- Each editioned tile shows a stack icon → `NftIncreaseSupplyForm` (mint more copies of an existing tokenId, capped at `maxSupply - currentSupply`). The button is hidden for unique tokens, soulbound tokens, and tokens already at max supply.
 - Empty-but-owned collections (you own the contract, hold zero tokens) still appear in the panel so you can mint into them.
 
 ### Deploy widget
