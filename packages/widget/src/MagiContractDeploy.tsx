@@ -308,7 +308,7 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		subscribeRef.current = cleanup;
 	}
 
-	async function onDeployerResult(result: DeployResult, startedAt: Date) {
+	async function onDeployerResult(result: DeployResult, _startedAt: Date) {
 		if (!result.success) {
 			throw new Error(result.error ?? result.message ?? 'Build failed.');
 		}
@@ -323,6 +323,12 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		});
 
 		const ready = substituteDeployerOps(ops, username!, config.network);
+		// Anchor the indexer poll to the moment immediately *before*
+		// broadcast - tighter than `_startedAt` (which is when the build
+		// kicked off, several seconds earlier). The contract can't have
+		// been registered before this point, so any post-`broadcastAt`
+		// contract from this user is the one we just signed for.
+		const broadcastAt = new Date();
 		const txId = await signAndBroadcast(ready);
 		setDeployTxId(txId);
 		appendLog({
@@ -339,7 +345,7 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 		});
 		const found = await deployer.findContractAfter({
 			owner: username!,
-			since: startedAt
+			since: broadcastAt
 		});
 		setContractId(found.contractId);
 		appendLog({

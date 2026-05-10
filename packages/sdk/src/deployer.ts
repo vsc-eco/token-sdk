@@ -131,6 +131,20 @@ export interface CreateDeployerClientOptions {
 }
 
 /**
+ * Parse a Magi-node-emitted timestamp as UTC. The node returns ISO-ish
+ * strings like `"2026-05-10T14:51:42"` with no timezone designator;
+ * per ECMAScript, naked-no-Z strings are interpreted as *local* time,
+ * which would offset the comparison by the user's timezone. Append `Z`
+ * unless the string already carries a designator so the wall-clock
+ * value the indexer wrote is the value we compare against `since`.
+ */
+function parseUtcTs(s: string): number {
+	if (!s) return NaN;
+	const hasTz = /[zZ]$|[+\-]\d{2}:?\d{2}$/.test(s);
+	return new Date(hasTz ? s : `${s}Z`).getTime();
+}
+
+/**
  * Substitute `{{username}}` placeholders inside the operations the
  * deployer returned with the actual Hive username, returning a clean
  * Hive-broadcast-ready array. Mirrors okinoko-terminal's substitution
@@ -348,12 +362,27 @@ export function createDeployerClient(
 						};
 					};
 					const rows = json.data?.findContract ?? [];
+					// Filter to *this user's* contracts created at-or-after we
+					// started polling. The two conjoined filters are what
+					// guarantees we don't return some other account's contract
+					// or a stale one - matching `creator` means the user was
+					// the deploy signer, matching `creation_ts >= since`
+					// means the contract didn't exist when we kicked off.
+					const candidates: Array<{ id: string; name: string; ts: number }> = [];
 					for (const row of rows) {
 						if (row.creator !== ownerHive) continue;
-						const ts = new Date(row.creation_ts).getTime();
-						if (Number.isFinite(ts) && ts >= sinceMs) {
-							return { contractId: row.id, name: row.name };
-						}
+						const ts = parseUtcTs(row.creation_ts);
+						if (!Number.isFinite(ts)) continue;
+						if (ts >= sinceMs) candidates.push({ id: row.id, name: row.name, ts });
+					}
+					if (candidates.length > 0) {
+						// Pick the *oldest* candidate >= since. If the user
+						// happens to have multiple deploys in flight (rare),
+						// this returns the one closest to when we started
+						// watching, which is the one we just signed for.
+						candidates.sort((a, b) => a.ts - b.ts);
+						const winner = candidates[0];
+						return { contractId: winner.id, name: winner.name };
 					}
 					// Successful response from this mirror; no need to try the
 					// other mirrors this round.
