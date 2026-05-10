@@ -5,7 +5,7 @@ import {
 	normalizeHiveAccount,
 	type TokenInfo
 } from '@vsc.eco/nft-core';
-import type { NftClient } from '@vsc.eco/nft-sdk';
+import type { NftClient, TokenOpBundle } from '@vsc.eco/nft-sdk';
 import { BroadcastResult } from '../components/BroadcastResult.js';
 import { Field, TextInput } from '../components/Field.js';
 import { Modal } from '../components/Modal.js';
@@ -19,6 +19,28 @@ export interface TokenTransferFormProps {
 	onClose: () => void;
 }
 
+type Mode = 'single' | 'distribute';
+
+/**
+ * Parse a free-form recipient list (any of `tibfox`, `@tibfox`,
+ * `hive:tibfox`, comma- newline- or space-delimited) into a normalised
+ * `hive:bare` username list with duplicates removed.
+ */
+function parseRecipients(raw: string): string[] {
+	if (!raw.trim()) return [];
+	const seen = new Set<string>();
+	const out: string[] = [];
+	// Accept any whitespace, comma, or semicolon as separators - paste-
+	// friendly so users don't need to massage the input.
+	for (const part of raw.split(/[\s,;]+/).filter(Boolean)) {
+		const norm = normalizeHiveAccount(part);
+		if (seen.has(norm)) continue;
+		seen.add(norm);
+		out.push(norm);
+	}
+	return out;
+}
+
 export function TokenTransferForm({
 	client,
 	username,
@@ -30,10 +52,15 @@ export function TokenTransferForm({
 	const balanceAmt = new TokenAmount(balance, info.decimals);
 	const balanceDisplay = balanceAmt.toDecimalStringTrimmed();
 
+	const [mode, setMode] = useState<Mode>('single');
 	const [to, setTo] = useState('hive:');
+	const [recipientsText, setRecipientsText] = useState('');
 	const [amountStr, setAmountStr] = useState('');
 	const [submitting, setSubmitting] = useState(false);
-	const [txId, setTxId] = useState<string | null>(null);
+	// Single tx id for the send mode + bundled distribute path; or
+	// progress info ("3 of 10 …") for the sequential fallback.
+	const [txIds, setTxIds] = useState<string[]>([]);
+	const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	const parsedRaw = useMemo(() => {
@@ -46,49 +73,196 @@ export function TokenTransferForm({
 		}
 	}, [amountStr, info.decimals]);
 
+	const recipients = useMemo(
+		() => (mode === 'distribute' ? parseRecipients(recipientsText) : []),
+		[mode, recipientsText]
+	);
+
+	// Pre-compute totals + per-recipient validity so we can render a
+	// summary line ("Sending 5 × 1.000 DIY = 5.000 DIY total") and flag
+	// invalid usernames before the user submits.
+	const distributeStats = useMemo(() => {
+		if (mode !== 'distribute') return null;
+		const invalid = recipients.filter((r) => !isValidHiveUsername(r));
+		const total =
+			parsedRaw !== null && recipients.length > 0
+				? parsedRaw * BigInt(recipients.length)
+				: null;
+		const exceeds = total !== null && total > balance;
+		return { invalid, total, exceeds };
+	}, [mode, recipients, parsedRaw, balance]);
+
 	const validation = useMemo(() => {
-		if (!isValidHiveUsername(to))
-			return { ok: false, err: to.replace(/^hive:/, '').length === 0 ? null : 'Invalid Hive username' };
 		if (parsedRaw === null)
 			return { ok: false, err: amountStr ? 'Amount must be > 0' : null };
-		if (parsedRaw > balance)
-			return { ok: false, err: `Amount exceeds balance (${balanceDisplay} ${info.symbol})` };
+		if (mode === 'single') {
+			if (!isValidHiveUsername(to))
+				return {
+					ok: false,
+					err: to.replace(/^hive:/, '').length === 0 ? null : 'Invalid Hive username'
+				};
+			if (parsedRaw > balance)
+				return {
+					ok: false,
+					err: `Amount exceeds balance (${balanceDisplay} ${info.symbol})`
+				};
+			return { ok: true, err: null as string | null };
+		}
+		// distribute
+		if (recipients.length === 0)
+			return { ok: false, err: 'Add at least one recipient.' };
+		if (distributeStats?.invalid.length) {
+			return {
+				ok: false,
+				err: `Invalid username${distributeStats.invalid.length === 1 ? '' : 's'}: ${distributeStats.invalid.join(', ')}`
+			};
+		}
+		if (distributeStats?.exceeds) {
+			return {
+				ok: false,
+				err: `Total (${distributeStats.total !== null ? new TokenAmount(distributeStats.total, info.decimals).toDecimalStringTrimmed() : '?'} ${info.symbol}) exceeds balance.`
+			};
+		}
 		return { ok: true, err: null as string | null };
-	}, [to, parsedRaw, amountStr, balance, balanceDisplay, info.symbol]);
+	}, [
+		mode,
+		to,
+		parsedRaw,
+		amountStr,
+		balance,
+		balanceDisplay,
+		info.symbol,
+		info.decimals,
+		recipients,
+		distributeStats
+	]);
+
+	async function handleSingle() {
+		if (parsedRaw === null) return;
+		const res = await client.token.transfer(info.contractId, username, {
+			to,
+			amount: parsedRaw.toString()
+		});
+		setTxIds([res.txId]);
+		onSuccess?.(res.txId);
+	}
+
+	async function handleDistribute() {
+		if (parsedRaw === null || recipients.length === 0) return;
+		const amount = parsedRaw.toString();
+		const bundles: TokenOpBundle[] = recipients.map((to) =>
+			client.token.transferOp(info.contractId, username, { to, amount })
+		);
+		// Try one-signature bundled tx first - falls back to sequential
+		// inside `client.broadcastBatch` when the signer can't bundle
+		// (e.g. an onBroadcast hook that takes one op at a time).
+		setProgress({ done: 0, total: bundles.length });
+		const res = await client.broadcastBatch(bundles, {
+			onProgress: (i) => setProgress({ done: i + 1, total: bundles.length })
+		});
+		setTxIds(res.txIds);
+		setProgress(null);
+		// Fire onSuccess once per resulting tx so external listeners
+		// (e.g. the panel's lastTx state) update for each one.
+		for (const id of res.txIds) onSuccess?.(id);
+	}
 
 	async function handleSubmit() {
-		if (!validation.ok || submitting || parsedRaw === null) return;
+		if (!validation.ok || submitting) return;
 		setSubmitting(true);
 		setError(null);
 		try {
-			const res = await client.token.transfer(info.contractId, username, {
-				to,
-				amount: parsedRaw.toString()
-			});
-			setTxId(res.txId);
-			onSuccess?.(res.txId);
+			if (mode === 'single') await handleSingle();
+			else await handleDistribute();
 		} catch (err) {
 			setError(err instanceof Error ? err.message : String(err));
 		} finally {
 			setSubmitting(false);
+			setProgress(null);
 		}
 	}
 
+	const submitLabel = (() => {
+		if (submitting) {
+			if (progress) return `Sending ${progress.done}/${progress.total}…`;
+			return mode === 'distribute' ? 'Distributing…' : 'Sending…';
+		}
+		if (mode === 'distribute') {
+			return `Distribute to ${recipients.length} recipient${recipients.length === 1 ? '' : 's'}`;
+		}
+		return `Send ${info.symbol}`;
+	})();
+
 	return (
 		<Modal
-			title={`Send ${info.symbol}`}
+			title={mode === 'distribute' ? `Distribute ${info.symbol}` : `Send ${info.symbol}`}
 			subtitle={`${info.name} - Balance: ${balanceDisplay} ${info.symbol}`}
 			onClose={onClose}
 		>
-			<Field label="Recipient" hint="The Hive username to receive tokens.">
-				<TextInput
-					value={to}
-					onChange={(v) => setTo(normalizeHiveAccount(v))}
-					placeholder="hive:username"
+			<div className="magi-nft-tabs" style={{ marginBottom: '0.4rem' }}>
+				<button
+					type="button"
+					className={`magi-nft-tab ${mode === 'single' ? 'active' : ''}`}
+					onClick={() => setMode('single')}
 					disabled={submitting}
-				/>
-			</Field>
-			<Field label="Amount" hint={`Max ${balanceDisplay} ${info.symbol}`}>
+				>
+					Send to one
+				</button>
+				<button
+					type="button"
+					className={`magi-nft-tab ${mode === 'distribute' ? 'active' : ''}`}
+					onClick={() => setMode('distribute')}
+					disabled={submitting}
+				>
+					Distribute to many
+				</button>
+			</div>
+
+			{mode === 'single' ? (
+				<Field label="Recipient" hint="The Hive username to receive tokens.">
+					<TextInput
+						value={to}
+						onChange={(v) => setTo(normalizeHiveAccount(v))}
+						placeholder="hive:username"
+						disabled={submitting}
+					/>
+				</Field>
+			) : (
+				<Field
+					label="Recipients"
+					hint="One per username, separated by spaces / commas / newlines. `tibfox`, `@tibfox`, `hive:tibfox` all work."
+				>
+					<div className={`magi-nft-input-wrap ${distributeStats?.invalid.length ? 'error' : ''}`}>
+						<textarea
+							value={recipientsText}
+							onChange={(e) => setRecipientsText((e.target as HTMLTextAreaElement).value)}
+							placeholder="@alice bob hive:carol"
+							disabled={submitting}
+							rows={3}
+							style={{
+								flex: 1,
+								background: 'transparent',
+								border: 0,
+								outline: 'none',
+								resize: 'vertical',
+								color: 'inherit',
+								font: 'inherit',
+								fontSize: '0.85rem',
+								minHeight: '60px'
+							}}
+						/>
+					</div>
+				</Field>
+			)}
+
+			<Field
+				label={mode === 'distribute' ? `Amount per recipient (${info.symbol})` : 'Amount'}
+				hint={
+					mode === 'distribute' && distributeStats?.total !== null && distributeStats?.total !== undefined
+						? `${recipients.length} × ${amountStr || '0'} = ${new TokenAmount(distributeStats.total, info.decimals).toDecimalStringTrimmed()} ${info.symbol} total · Balance ${balanceDisplay}`
+						: `Max ${balanceDisplay} ${info.symbol}`
+				}
+			>
 				<TextInput
 					inputMode="decimal"
 					value={amountStr}
@@ -98,13 +272,28 @@ export function TokenTransferForm({
 				/>
 			</Field>
 
+			{mode === 'distribute' && recipients.length > 0 && !distributeStats?.invalid.length && (
+				<p
+					style={{
+						fontSize: '0.7rem',
+						color: 'var(--magi-text-muted)',
+						margin: '0.1rem 0'
+					}}
+				>
+					Will sign {recipients.length} transfer{recipients.length === 1 ? '' : 's'}
+					{recipients.length > 1 ? ' (bundled into one transaction when your signer supports it)' : ''}.
+				</p>
+			)}
+
 			{(error || validation.err) && (
 				<p className="magi-nft-status error">{error ?? validation.err}</p>
 			)}
 
-			{txId ? (
+			{txIds.length > 0 ? (
 				<>
-					<BroadcastResult txId={txId} />
+					{txIds.map((id) => (
+						<BroadcastResult key={id} txId={id} />
+					))}
 					<button type="button" className="magi-nft-submit ghost" onClick={onClose}>
 						Done
 					</button>
@@ -116,7 +305,7 @@ export function TokenTransferForm({
 					disabled={!validation.ok || submitting}
 					onClick={handleSubmit}
 				>
-					{submitting ? 'Sending…' : `Send ${info.symbol}`}
+					{submitLabel}
 				</button>
 			)}
 		</Modal>

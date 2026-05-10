@@ -253,6 +253,31 @@ export interface NftClient {
 	};
 	/** Direct broadcast of any NFT or token bundle. */
 	broadcast(bundle: NftOpBundle | TokenOpBundle): Promise<BroadcastResult>;
+	/**
+	 * Broadcast multiple bundles. When the host's signer supports
+	 * `signAndBroadcastTx` (Aioha does), all ops are bundled into ONE
+	 * Hive transaction so the user signs once. Otherwise each bundle is
+	 * broadcast sequentially via the single-op path. Returns the txId
+	 * (or txIds, when sequential) and a per-bundle status array so
+	 * callers can show progress.
+	 */
+	broadcastBatch(
+		bundles: Array<NftOpBundle | TokenOpBundle>,
+		opts?: {
+			/**
+			 * Forces sequential per-bundle broadcasts even when the signer
+			 * supports `signAndBroadcastTx`. Useful when the caller wants a
+			 * separate txid per recipient (e.g. for per-row receipts).
+			 */
+			sequential?: boolean;
+			/** Called once per bundle when sequential broadcasting. */
+			onProgress?: (i: number, total: number, txId: string) => void;
+		}
+	): Promise<{
+		/** Bundled mode: one txId. Sequential mode: one per bundle. */
+		txIds: string[];
+		bundles: Array<NftOpBundle | TokenOpBundle>;
+	}>;
 }
 
 export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
@@ -307,6 +332,49 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 		throw new Error('Aioha instance has neither vscCallContract nor signAndBroadcastTx');
 	}
 
+	async function broadcastBatch(
+		bundles: Array<NftOpBundle | TokenOpBundle>,
+		opts: {
+			sequential?: boolean;
+			onProgress?: (i: number, total: number, txId: string) => void;
+		} = {}
+	): Promise<{
+		txIds: string[];
+		bundles: Array<NftOpBundle | TokenOpBundle>;
+	}> {
+		if (bundles.length === 0) {
+			return { txIds: [], bundles };
+		}
+		// Sequential path: one tx per bundle. Used when the caller asks
+		// for it explicitly OR when the signer can't bundle (no
+		// signAndBroadcastTx surface and the broadcast path falls
+		// through to onBroadcast / vscCallContract).
+		const canBundle =
+			!opts.sequential &&
+			!onBroadcast &&
+			!!aioha &&
+			typeof aioha.signAndBroadcastTx === 'function';
+		if (canBundle) {
+			const ops = bundles.map((b) => b.op as unknown);
+			const res = await aioha!.signAndBroadcastTx!(ops, keyType);
+			if (!res.success || typeof res.result !== 'string') {
+				throw new Error(`signAndBroadcastTx failed: ${res.error ?? 'unknown'}`);
+			}
+			return { txIds: [res.result], bundles };
+		}
+		// Sequential fallback. Stops on first failure - the caller is
+		// responsible for deciding what to do with partial success
+		// (typically: surface the txIds we did get and let the user
+		// retry the rest).
+		const txIds: string[] = [];
+		for (let i = 0; i < bundles.length; i++) {
+			const r = await broadcast(bundles[i]);
+			txIds.push(r.txId);
+			opts.onProgress?.(i, bundles.length, r.txId);
+		}
+		return { txIds, bundles };
+	}
+
 	const ctx = (contractId: string, username: string) => ({
 		contractId,
 		username,
@@ -353,6 +421,7 @@ export function createNftClient(opts: CreateNftClientOptions = {}): NftClient {
 			transfer: (cid, u, p) => broadcast(buildTokenTransfer(ctx(cid, u), p)),
 			burn: (cid, u, p) => broadcast(buildTokenBurn(ctx(cid, u), p))
 		},
-		broadcast
+		broadcast,
+		broadcastBatch
 	};
 }
