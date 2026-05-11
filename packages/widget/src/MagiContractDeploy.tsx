@@ -479,6 +479,12 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 
 			{stage === 'form' && (
 				<>
+					<p
+						className="magi-token-status error"
+						style={{ marginTop: 0, marginBottom: '0.6rem' }}
+					>
+						Deployment costs 10 HBD from L1.
+					</p>
 					{type === 'nft' ? (
 						<>
 							<Field
