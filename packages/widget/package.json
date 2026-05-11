@@ -4,8 +4,17 @@
   "publishConfig": {
     "access": "public"
   },
+  "license": "MIT",
   "description": "Embeddable Magi NFT + token panels — React component + web component",
-  "keywords": ["hive", "vsc", "magi", "nft", "widget", "react", "web-component"],
+  "keywords": [
+    "hive",
+    "vsc",
+    "magi",
+    "nft",
+    "widget",
+    "react",
+    "web-component"
+  ],
   "homepage": "https://github.com/vsc-eco/token-sdk/tree/main/packages/widget#readme",
   "repository": {
     "type": "git",
@@ -27,7 +36,9 @@
     "./styles.css": "./dist/styles.css",
     "./themes/light.css": "./dist/themes/light.css"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.tsx src/webcomponent.tsx --format esm --dts --clean --external react --external react-dom --loader .css=copy --loader .svg=dataurl && cp dist/styles-*.css dist/styles.css 2>/dev/null || true && mkdir -p dist/themes && cp src/themes/light.css dist/themes/light.css",
     "test": "vitest run --passWithNoTests",
@@ -39,11 +50,13 @@
     "@aioha/aioha": "^1.8.0"
   },
   "peerDependenciesMeta": {
-    "@aioha/aioha": { "optional": true }
+    "@aioha/aioha": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "@vsc.eco/token-core": "0.0.1",
-    "@vsc.eco/token-sdk": "0.0.1",
+    "@vsc.eco/token-core": "workspace:*",
+    "@vsc.eco/token-sdk": "workspace:*",
     "@r2wc/react-to-web-component": "^2.0.3"
   },
   "devDependencies": {

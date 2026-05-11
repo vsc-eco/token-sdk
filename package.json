@@ -13,12 +13,5 @@
     "tsup": "^8.3.5",
     "vitest": "^2.1.8"
   },
-  "pnpm": {
-    "overrides": {
-      "@vsc.eco/token-core": "workspace:*",
-      "@vsc.eco/token-sdk": "workspace:*",
-      "@vsc.eco/token-widget": "workspace:*"
-    }
-  },
   "packageManager": "pnpm@10.33.0"
 }

@@ -4,8 +4,17 @@
   "publishConfig": {
     "access": "public"
   },
+  "license": "MIT",
   "description": "Magi (VSC) NFT + token operation builders and types — pure functions, no framework dependencies",
-  "keywords": ["hive", "vsc", "magi", "nft", "erc1155", "token", "erc20"],
+  "keywords": [
+    "hive",
+    "vsc",
+    "magi",
+    "nft",
+    "erc1155",
+    "token",
+    "erc20"
+  ],
   "homepage": "https://github.com/vsc-eco/token-sdk/tree/main/packages/core#readme",
   "repository": {
     "type": "git",
