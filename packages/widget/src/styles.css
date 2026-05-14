@@ -710,6 +710,9 @@
 	max-height: calc(100vh - 2rem);
 	overflow-y: auto;
 }
+.magi-token-modal-card--wide {
+	max-width: 520px;
+}
 .magi-token-modal-title {
 	margin: 0;
 	font-weight: 600;
@@ -718,6 +721,75 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 0.5rem;
+}
+
+/* ==== NFT details modal ==== */
+.magi-token-details-image {
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	background: var(--magi-field-bg);
+	border: 1px solid var(--magi-field-border);
+	border-radius: 12px;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.magi-token-details-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.magi-token-details-image.fallback {
+	background: var(--magi-accent-light);
+}
+.magi-token-details-image.fallback img {
+	width: 40%;
+	height: 40%;
+	opacity: 0.7;
+}
+.magi-token-details-description {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--magi-text-secondary);
+	line-height: 1.45;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.magi-token-details-grid {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	column-gap: 0.8rem;
+	row-gap: 0.3rem;
+	font-size: 0.8rem;
+}
+.magi-token-details-grid dt {
+	color: var(--magi-text-muted);
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	align-self: center;
+}
+.magi-token-details-grid dd {
+	margin: 0;
+	color: var(--magi-text);
+	font-family: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	overflow-wrap: anywhere;
+}
+.magi-token-details-props {
+	margin: 0;
+	padding: 0.6rem 0.7rem;
+	background: var(--magi-field-bg);
+	border: 1px solid var(--magi-field-border);
+	border-radius: 10px;
+	font-size: 0.72rem;
+	font-family: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	color: var(--magi-text);
+	overflow-x: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 180px;
+	overflow-y: auto;
 }
 .magi-token-modal-close {
 	background: transparent;

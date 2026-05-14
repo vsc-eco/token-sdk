@@ -13,7 +13,7 @@ export interface NftMintFormProps {
 	onClose: () => void;
 }
 
-type PropertiesMode = 'simple' | 'json';
+type PropertiesMode = 'simple' | 'json' | 'template';
 
 /**
  * Owner-only "mint" form for an NFT collection. Mirrors okinoko-terminal's
@@ -53,6 +53,11 @@ export function NftMintForm({
 	// Custom-mode raw JSON. Seeded from simple fields when the user
 	// flips to custom so they don't lose what they already typed.
 	const [propsJson, setPropsJson] = useState('');
+	// Template-mode: token id of an existing NFT in this collection whose
+	// properties this mint should inherit. The contract stores the link in
+	// `magi_nft_template_tokens` and image resolution falls back to the
+	// template's image when the new token has no own props.
+	const [propertiesTemplate, setPropertiesTemplate] = useState('');
 
 	const [submitting, setSubmitting] = useState(false);
 	const [txId, setTxId] = useState<string | null>(null);
@@ -113,6 +118,7 @@ export function NftMintForm({
 	}, [propsMode, propsJson]);
 
 	const propertiesObject = useMemo<Record<string, unknown> | undefined>(() => {
+		if (propsMode === 'template') return undefined;
 		if (propsMode === 'simple') {
 			const obj: Record<string, string> = {};
 			if (propName.trim()) obj.name = propName.trim();
@@ -143,9 +149,15 @@ export function NftMintForm({
 			const m = parseInt(maxSupply, 10);
 			if (!Number.isFinite(m) || m <= 0) return { ok: false, err: 'Max supply must be > 0' };
 		}
-		if (jsonError) return { ok: false, err: `Properties JSON: ${jsonError}` };
+		if (propsMode === 'template') {
+			if (!propertiesTemplate.trim()) return { ok: false, err: null as string | null };
+			if (propertiesTemplate.trim() === tokenId.trim())
+				return { ok: false, err: 'Template id cannot equal the new token id' };
+		} else if (jsonError) {
+			return { ok: false, err: `Properties JSON: ${jsonError}` };
+		}
 		return { ok: true, err: null as string | null };
-	}, [to, tokenId, amount, maxSupply, jsonError]);
+	}, [to, tokenId, amount, maxSupply, jsonError, propsMode, propertiesTemplate]);
 
 	async function handleSubmit() {
 		if (!validation.ok || submitting) return;
@@ -158,7 +170,11 @@ export function NftMintForm({
 				amount: parseInt(amount, 10),
 				maxSupply: maxSupply.trim() ? parseInt(maxSupply, 10) : undefined,
 				soulbound: soulbound ? true : undefined,
-				properties: propertiesObject
+				properties: propsMode === 'template' ? undefined : propertiesObject,
+				propertiesTemplate:
+					propsMode === 'template' && propertiesTemplate.trim()
+						? propertiesTemplate.trim()
+						: undefined
 			});
 			const res = await client.broadcast(bundle);
 			setTxId(res.txId);
@@ -251,9 +267,17 @@ export function NftMintForm({
 				>
 					Custom JSON
 				</button>
+				<button
+					type="button"
+					className={`magi-token-tab ${propsMode === 'template' ? 'active' : ''}`}
+					onClick={() => switchMode('template')}
+					disabled={submitting}
+				>
+					Template id
+				</button>
 			</div>
 
-			{propsMode === 'simple' ? (
+			{propsMode === 'simple' && (
 				<>
 					<Field label="Name" hint="Display name for the NFT.">
 						<TextInput
@@ -279,7 +303,8 @@ export function NftMintForm({
 						/>
 					</Field>
 				</>
-			) : (
+			)}
+			{propsMode === 'json' && (
 				<Field
 					label="Properties (JSON)"
 					hint="Free-form per-token properties. Stored verbatim on-chain."
@@ -307,6 +332,19 @@ export function NftMintForm({
 							}}
 						/>
 					</div>
+				</Field>
+			)}
+			{propsMode === 'template' && (
+				<Field
+					label="Template token id"
+					hint="Existing token id in this collection. The new mint inherits its name, image and properties - no own metadata is stored which will result in less RC costs for the mint."
+				>
+					<TextInput
+						value={propertiesTemplate}
+						onChange={setPropertiesTemplate}
+						placeholder="base-template"
+						disabled={submitting}
+					/>
 				</Field>
 			)}
 

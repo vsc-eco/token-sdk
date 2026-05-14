@@ -89,6 +89,7 @@ type ActionState =
 	| { kind: 'mint'; collection: NftItem['collection'] }
 	| { kind: 'mintMore'; item: NftItem }
 	| { kind: 'edit'; collection: NftItem['collection'] }
+	| { kind: 'details'; item: NftItem }
 	| null;
 
 interface CollectionGroup {
@@ -693,6 +694,7 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 												onTransfer={() => setAction({ kind: 'transfer', item: it })}
 												onBurn={() => setAction({ kind: 'burn', item: it })}
 												onMintMore={() => setAction({ kind: 'mintMore', item: it })}
+												onOpenDetails={() => setAction({ kind: 'details', item: it })}
 											/>
 										);
 									}
@@ -809,6 +811,21 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 					onClose={() => setAction(null)}
 				/>
 			)}
+			{action?.kind === 'details' && (
+				<NftDetailsModal
+					client={client}
+					item={action.item}
+					imageUrl={
+						imageUrls[`${action.item.contractId}:${action.item.tokenId}`] ?? null
+					}
+					templateMeta={
+						action.item.templateId
+							? templateMeta[`${action.item.contractId}:${action.item.templateId}`] ?? null
+							: null
+					}
+					onClose={() => setAction(null)}
+				/>
+			)}
 			{expandedTemplate && (
 				<TemplateExpansionModal
 					contractId={expandedTemplate.contractId}
@@ -843,6 +860,10 @@ export function MagiNftPanel(props: MagiNftPanelProps) {
 						setExpandedTemplate(null);
 						setAction({ kind: 'mintMore', item });
 					}}
+					onOpenDetails={(item) => {
+						setExpandedTemplate(null);
+						setAction({ kind: 'details', item });
+					}}
 					onBatchTransfer={() => {
 						const cid = expandedTemplate.contractId;
 						const items = expandedTemplate.items;
@@ -865,6 +886,7 @@ interface TileProps {
 	onTransfer: () => void;
 	onBurn: () => void;
 	onMintMore?: () => void;
+	onOpenDetails?: () => void;
 }
 
 function NftTile({
@@ -874,7 +896,8 @@ function NftTile({
 	isOwner,
 	onTransfer,
 	onBurn,
-	onMintMore
+	onMintMore,
+	onOpenDetails
 }: TileProps) {
 	// "Mint more" only makes sense for editioned tokens with headroom
 	// left under maxSupply. Unique tokens (maxSupply === 1) and tokens
@@ -894,7 +917,22 @@ function NftTile({
 	const [imgFailed, setImgFailed] = useState(false);
 	const useFallback = !imageUrl || imgFailed;
 	return (
-		<div className="magi-token-tile">
+		<div
+			className="magi-token-tile"
+			onClick={onOpenDetails}
+			role={onOpenDetails ? 'button' : undefined}
+			tabIndex={onOpenDetails ? 0 : undefined}
+			onKeyDown={
+				onOpenDetails
+					? (e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								onOpenDetails();
+							}
+					  }
+					: undefined
+			}
+		>
 			<div className={`magi-token-tile-image ${useFallback ? 'fallback' : ''}`}>
 				{useFallback ? (
 					<img
@@ -1159,6 +1197,7 @@ interface TemplateExpansionModalProps {
 	onTransfer: (item: NftItem) => void;
 	onBurn: (item: NftItem) => void;
 	onMintMore: (item: NftItem) => void;
+	onOpenDetails: (item: NftItem) => void;
 	onBatchTransfer: () => void;
 	onClose: () => void;
 }
@@ -1181,6 +1220,7 @@ function TemplateExpansionModal({
 	onTransfer,
 	onBurn,
 	onMintMore,
+	onOpenDetails,
 	onBatchTransfer,
 	onClose
 }: TemplateExpansionModalProps) {
@@ -1218,6 +1258,7 @@ function TemplateExpansionModal({
 						onTransfer={() => onTransfer(it)}
 						onBurn={() => onBurn(it)}
 						onMintMore={() => onMintMore(it)}
+						onOpenDetails={() => onOpenDetails(it)}
 					/>
 				))}
 			</div>
@@ -1232,7 +1273,8 @@ function TemplateItemRow({
 	isOwner,
 	onTransfer,
 	onBurn,
-	onMintMore
+	onMintMore,
+	onOpenDetails
 }: {
 	item: NftItem;
 	imageUrl: string | null;
@@ -1241,6 +1283,7 @@ function TemplateItemRow({
 	onTransfer: () => void;
 	onBurn: () => void;
 	onMintMore: () => void;
+	onOpenDetails: () => void;
 }) {
 	const headroom =
 		typeof item.currentSupply === 'number'
@@ -1251,7 +1294,19 @@ function TemplateItemRow({
 	const [imgFailed, setImgFailed] = useState(false);
 	const useFallback = !imageUrl || imgFailed;
 	return (
-		<div className="magi-token-template-item">
+		<div
+			className="magi-token-template-item"
+			onClick={onOpenDetails}
+			role="button"
+			tabIndex={0}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					onOpenDetails();
+				}
+			}}
+			style={{ cursor: 'pointer' }}
+		>
 			<div className={`magi-token-template-item-img ${useFallback ? 'fallback' : ''}`}>
 				{useFallback ? (
 					<img src={magiFallbackSvg} alt={item.tokenId} />
@@ -1279,7 +1334,10 @@ function TemplateItemRow({
 						className="magi-token-icon-btn"
 						title="Transfer"
 						disabled={item.soulbound}
-						onClick={onTransfer}
+						onClick={(e) => {
+							e.stopPropagation();
+							onTransfer();
+						}}
 					>
 						<SendIcon />
 					</button>
@@ -1287,7 +1345,10 @@ function TemplateItemRow({
 						type="button"
 						className="magi-token-icon-btn danger"
 						title="Burn"
-						onClick={onBurn}
+						onClick={(e) => {
+							e.stopPropagation();
+							onBurn();
+						}}
 					>
 						<BurnIcon />
 					</button>
@@ -1300,7 +1361,10 @@ function TemplateItemRow({
 									? `Mint more copies (${headroom} left under max supply)`
 									: 'Mint more copies of this token'
 							}
-							onClick={onMintMore}
+							onClick={(e) => {
+								e.stopPropagation();
+								onMintMore();
+							}}
 						>
 							<MintMoreIcon />
 						</button>
@@ -1308,5 +1372,141 @@ function TemplateItemRow({
 				</div>
 			)}
 		</div>
+	);
+}
+
+interface NftDetailsModalProps {
+	client: NftClient;
+	item: NftItem;
+	/** Pre-resolved image URL from the panel's cache, if any. */
+	imageUrl: string | null;
+	/** Template metadata already cached by the panel, if the item points at a template. */
+	templateMeta: NftMetadata | null;
+	onClose: () => void;
+}
+
+/**
+ * Read-only "show me this NFT" modal. Surfaces the bigger image plus the
+ * basic collection / token / supply / properties details. The panel
+ * already caches the resolved image URL and any template metadata, so we
+ * reuse those; we only fetch the token's own properties blob here (for
+ * description + free-form props) since the panel's `imageUrls` cache only
+ * exposes the resolved URL, not the source metadata object.
+ */
+function NftDetailsModal({
+	client,
+	item,
+	imageUrl,
+	templateMeta,
+	onClose
+}: NftDetailsModalProps) {
+	const [ownMeta, setOwnMeta] = useState<NftMetadata | null | undefined>(undefined);
+	const [imgFailed, setImgFailed] = useState(false);
+
+	useEffect(() => {
+		let cancelled = false;
+		client.nft.provider
+			.getTokenProperties(item.contractId, [item.tokenId])
+			.then((map) => {
+				if (cancelled) return;
+				setOwnMeta(map.get(`${item.contractId}:${item.tokenId}`) ?? null);
+			})
+			.catch(() => {
+				if (!cancelled) setOwnMeta(null);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [client, item.contractId, item.tokenId]);
+
+	// Resolved metadata: own props win, fall back to template props for
+	// mintSeries / propertiesTemplate-minted tokens that store no own blob.
+	const effectiveMeta: NftMetadata | null =
+		(ownMeta && Object.keys(ownMeta).length > 0 ? ownMeta : null) ?? templateMeta;
+	const displayName =
+		(typeof effectiveMeta?.name === 'string' && effectiveMeta.name.trim()) || item.tokenId;
+	const description =
+		typeof effectiveMeta?.description === 'string' ? effectiveMeta.description : '';
+	const useFallback = !imageUrl || imgFailed;
+	const tag = item.isUnique ? 'Unique' : item.soulbound ? 'Soulbound' : 'Editioned';
+	// Strip name/description/image when showing the "raw properties" block so
+	// we don't double-display what's already in the summary header.
+	const extraProps = effectiveMeta
+		? Object.fromEntries(
+				Object.entries(effectiveMeta).filter(
+					([k]) => k !== 'name' && k !== 'description' && k !== 'image'
+				)
+		  )
+		: {};
+	const hasExtraProps = Object.keys(extraProps).length > 0;
+
+	return (
+		<Modal
+			title={displayName}
+			subtitle={`${item.collection.name || item.contractId}${
+				item.collection.symbol ? ` · ${item.collection.symbol}` : ''
+			}`}
+			wide
+			onClose={onClose}
+		>
+			<div className={`magi-token-details-image ${useFallback ? 'fallback' : ''}`}>
+				{useFallback ? (
+					<img src={magiFallbackSvg} alt={displayName} />
+				) : (
+					<img
+						src={imageUrl as string}
+						alt={displayName}
+						onError={() => setImgFailed(true)}
+					/>
+				)}
+			</div>
+
+			{description && <p className="magi-token-details-description">{description}</p>}
+
+			<dl className="magi-token-details-grid">
+				<dt>Token id</dt>
+				<dd>{item.tokenId}</dd>
+				<dt>Type</dt>
+				<dd>{tag}</dd>
+				{!item.isUnique && (
+					<>
+						<dt>Balance</dt>
+						<dd>{item.balance}</dd>
+						<dt>Max supply</dt>
+						<dd>{item.maxSupply}</dd>
+						{typeof item.currentSupply === 'number' && (
+							<>
+								<dt>Current supply</dt>
+								<dd>{item.currentSupply}</dd>
+							</>
+						)}
+					</>
+				)}
+				{item.templateId && item.templateId !== item.tokenId && (
+					<>
+						<dt>Template</dt>
+						<dd>{item.templateId}</dd>
+					</>
+				)}
+				<dt>Contract</dt>
+				<dd>{item.contractId}</dd>
+				{item.collection.owner && (
+					<>
+						<dt>Collection owner</dt>
+						<dd>{item.collection.owner.replace(/^hive:/, '@')}</dd>
+					</>
+				)}
+			</dl>
+
+			{hasExtraProps && (
+				<pre className="magi-token-details-props">
+					{JSON.stringify(extraProps, null, 2)}
+				</pre>
+			)}
+
+			<button type="button" className="magi-token-submit ghost" onClick={onClose}>
+				Close
+			</button>
+		</Modal>
 	);
 }

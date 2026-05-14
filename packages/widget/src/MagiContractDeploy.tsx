@@ -516,27 +516,6 @@ export function MagiContractDeploy(props: MagiContractDeployProps) {
 									placeholder="https://example.com/meta/"
 								/>
 							</Field>
-							<label
-								style={{
-									display: 'flex',
-									alignItems: 'center',
-									gap: '0.5rem',
-									fontSize: '0.85rem',
-									color: 'var(--magi-text-secondary)'
-								}}
-							>
-								<input
-									type="checkbox"
-									checked={nftFields.trackMinted}
-									onChange={(e) =>
-										setNftFields((p) => ({
-											...p,
-											trackMinted: (e.target as HTMLInputElement).checked
-										}))
-									}
-								/>
-								Track total minted (enables the totalMinted query)
-							</label>
 							<Field label="Description" hint="Short description of the collection. Stored in collection_metadata.">
 								<TextInput
 									value={nftFields.description}
