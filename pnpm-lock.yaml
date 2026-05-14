@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@vsc.eco/token-core': workspace:*
-  '@vsc.eco/token-sdk': workspace:*
-  '@vsc.eco/token-widget': workspace:*
-
 importers:
 
   .:
