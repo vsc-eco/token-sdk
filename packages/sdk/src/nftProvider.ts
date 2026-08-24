@@ -431,7 +431,11 @@ export function createNftProvider(
 				url = extractImageUrl(tplProps);
 			}
 			if (!url) {
-				url = buildBaseUriImage(it.collection.baseUri, it.tokenId);
+				// Optional: callers legitimately pass a bare {contractId, tokenId}
+				// when they only want art. Reaching into an absent `collection`
+				// threw, and since a caller's catch swallows it, ONE token with
+				// no own props lost the image for the whole batch.
+				url = buildBaseUriImage(it.collection?.baseUri, it.tokenId);
 			}
 			out.set(key, url ?? null);
 		}
