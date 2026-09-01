@@ -68,11 +68,17 @@ export const MAINNET_CONFIG: MagiConfig = {
 
 export const TESTNET_CONFIG: MagiConfig = {
 	network: 'vsc-testnet',
+	// okinoko first: it carries the full magi_* schema, and the milohpr
+	// indexer is a generic-VSC fallback.
 	indexerHasuraUrls: [
-		'https://indexer.testnet.magi.milohpr.com/v1/graphql',
-		'https://api-testnet.okinoko.io/hasura/v1/graphql'
+		'https://api-testnet.okinoko.io/hasura/v1/graphql',
+		'https://indexer.testnet.magi.milohpr.com/v1/graphql'
 	],
-	gqlUrls: ['https://api.testnet.vsc.eco/api/v1/graphql'],
+	// api.testnet.vsc.eco does not answer (verified 2026-08-24, connection
+	// fails outright). Image resolution reads token properties through
+	// getStateByKeys on this endpoint, so pointing it at a dead host made
+	// every NFT in every consumer fall back to the Magi logo.
+	gqlUrls: ['https://magi-test.techcoderx.com/api/v1/graphql'],
 	deployerUrl: 'https://deploy-testnet.okinoko.io'
 };
 

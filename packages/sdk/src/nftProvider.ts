@@ -186,17 +186,53 @@ export function createNftProvider(
 	const gqlUrls = resolveGqlUrls(config);
 	const fetchOpts = opts.fetchOptions;
 
+	/**
+	 * Read every row, not the first hundred.
+	 *
+	 * The indexer's Hasura role caps EVERY response at 100 rows and silently
+	 * ignores a larger `limit` — so an unpaged query does not fail, it just
+	 * stops. A wallet holding 1053 NFTs was showing an arbitrary alphabetical
+	 * first 100 of them, with nothing to say the rest existed.
+	 *
+	 * Ordered paging, because `offset` without `order_by` is not guaranteed to
+	 * be a stable window: the same row could appear twice, or never.
+	 */
+	async function pagedRows<T>(
+		query: (limit: number, offset: number) => string,
+		variables: Record<string, unknown>,
+		hardCap = 5000
+	): Promise<T[]> {
+		const PAGE = 100;
+		const out: T[] = [];
+		for (let offset = 0; offset < hardCap; offset += PAGE) {
+			const data = await gqlFetchFailover<{ rows: T[] }>(
+				indexerUrls,
+				query(PAGE, offset),
+				variables,
+				fetchOpts
+			);
+			const rows = data.rows ?? [];
+			out.push(...rows);
+			// A short page is the last page. An exactly-full one is ambiguous,
+			// so it costs one more request to find out.
+			if (rows.length < PAGE) break;
+		}
+		return out;
+	}
+
 	async function getCollections(contractIds: string[]): Promise<NftCollection[]> {
 		if (!contractIds.length) return [];
-		const data = await gqlFetchFailover<{ rows: OverviewRow[] }>(
-			indexerUrls,
-			`query($ids: [String!]!) {
-				rows: magi_nft_overview(where: { contract_id: { _in: $ids } }) { ${OVERVIEW_FRAGMENT} }
+		const rows = await pagedRows<OverviewRow>(
+			(limit, offset) => `query($ids: [String!]!) {
+				rows: magi_nft_overview(
+					where: { contract_id: { _in: $ids } }
+					order_by: { contract_id: asc }
+					limit: ${limit} offset: ${offset}
+				) { ${OVERVIEW_FRAGMENT} }
 			}`,
-			{ ids: contractIds },
-			fetchOpts
+			{ ids: contractIds }
 		);
-		return data.rows.map(rowToCollection);
+		return rows.map(rowToCollection);
 	}
 
 	async function getCollection(contractId: string): Promise<NftCollection | null> {
@@ -205,32 +241,36 @@ export function createNftProvider(
 	}
 
 	async function getCollectionsByOwner(owner: string): Promise<NftCollection[]> {
-		const data = await gqlFetchFailover<{ rows: OverviewRow[] }>(
-			indexerUrls,
-			`query($owner: String!) {
-				rows: magi_nft_overview(where: { owner: { _eq: $owner } }) { ${OVERVIEW_FRAGMENT} }
+		const rows = await pagedRows<OverviewRow>(
+			(limit, offset) => `query($owner: String!) {
+				rows: magi_nft_overview(
+					where: { owner: { _eq: $owner } }
+					order_by: { contract_id: asc }
+					limit: ${limit} offset: ${offset}
+				) { ${OVERVIEW_FRAGMENT} }
 			}`,
-			{ owner },
-			fetchOpts
+			{ owner }
 		);
-		return data.rows.map(rowToCollection);
+		return rows.map(rowToCollection);
 	}
 
 	async function getBalances(account: string): Promise<NftBalance[]> {
 		if (!account) return [];
 		// Filter zero balances on the client — matches okinoko-terminal's
 		// approach and dodges any column-type quirks across indexer mirrors.
-		const data = await gqlFetchFailover<{ rows: BalanceRow[] }>(
-			indexerUrls,
-			`query($acc: String!) {
-				rows: magi_nft_balances(where: { account: { _eq: $acc } }) {
+		const rows = await pagedRows<BalanceRow>(
+			(limit, offset) => `query($acc: String!) {
+				rows: magi_nft_balances(
+					where: { account: { _eq: $acc } }
+					order_by: [{ contract_id: asc }, { token_id: asc }]
+					limit: ${limit} offset: ${offset}
+				) {
 					contract_id token_id balance
 				}
 			}`,
-			{ acc: account },
-			fetchOpts
+			{ acc: account }
 		);
-		return data.rows
+		return rows
 			.map((r) => ({
 				contractId: r.contract_id,
 				tokenId: r.token_id,
@@ -241,33 +281,40 @@ export function createNftProvider(
 
 	async function getTokenInfos(contractIds: string[]): Promise<NftTokenInfo[]> {
 		if (!contractIds.length) return [];
-		const [info, supply] = await Promise.all([
-			gqlFetchFailover<{ rows: TokenInfoRow[] }>(
-				indexerUrls,
-				`query($ids: [String!]!) {
-					rows: magi_nft_token_info(where: { contract_id: { _in: $ids } }) {
+		// One row PER TOKEN, not per collection: a single collection with more
+		// than a hundred tokens overflows the cap on its own, which shows up
+		// as NFTs rendering without their supply or soulbound flag.
+		const [infoRows, supplyRows] = await Promise.all([
+			pagedRows<TokenInfoRow>(
+				(limit, offset) => `query($ids: [String!]!) {
+					rows: magi_nft_token_info(
+						where: { contract_id: { _in: $ids } }
+						order_by: [{ contract_id: asc }, { token_id: asc }]
+						limit: ${limit} offset: ${offset}
+					) {
 						contract_id token_id max_supply soulbound has_properties created_ts
 					}
 				}`,
-				{ ids: contractIds },
-				fetchOpts
+				{ ids: contractIds }
 			),
-			gqlFetchFailover<{ rows: SupplyRow[] }>(
-				indexerUrls,
-				`query($ids: [String!]!) {
-					rows: magi_nft_token_supply(where: { contract_id: { _in: $ids } }) {
+			pagedRows<SupplyRow>(
+				(limit, offset) => `query($ids: [String!]!) {
+					rows: magi_nft_token_supply(
+						where: { contract_id: { _in: $ids } }
+						order_by: [{ contract_id: asc }, { token_id: asc }]
+						limit: ${limit} offset: ${offset}
+					) {
 						contract_id token_id current_supply
 					}
 				}`,
-				{ ids: contractIds },
-				fetchOpts
+				{ ids: contractIds }
 			)
 		]);
 		const supplyByKey = new Map<string, number>();
-		for (const s of supply.rows) {
+		for (const s of supplyRows) {
 			supplyByKey.set(`${s.contract_id}:${s.token_id}`, Number(s.current_supply));
 		}
-		return info.rows.map((r) => ({
+		return infoRows.map((r) => ({
 			contractId: r.contract_id,
 			tokenId: r.token_id,
 			maxSupply: Number(r.max_supply),
@@ -384,7 +431,11 @@ export function createNftProvider(
 				url = extractImageUrl(tplProps);
 			}
 			if (!url) {
-				url = buildBaseUriImage(it.collection.baseUri, it.tokenId);
+				// Optional: callers legitimately pass a bare {contractId, tokenId}
+				// when they only want art. Reaching into an absent `collection`
+				// threw, and since a caller's catch swallows it, ONE token with
+				// no own props lost the image for the whole batch.
+				url = buildBaseUriImage(it.collection?.baseUri, it.tokenId);
 			}
 			out.set(key, url ?? null);
 		}
