@@ -15,20 +15,38 @@ export class TokenAmount {
 		this.decimals = decimals;
 	}
 
-	/** Parse a human "12.345" string at the given decimals into smallest units. */
+	/**
+	 * Parse a human "12.345" string at the given decimals into smallest units.
+	 *
+	 * Strict, because this is the boundary where user input becomes a token
+	 * amount (matches MarketAmount in @vsc.eco/market-core):
+	 * - empty input, "-" and "." are rejected, not read as zero -- a blank
+	 *   field is not an amount, and treating it as 0 hides the mistake;
+	 * - negative amounts are rejected: every token amount on the wire is
+	 *   unsigned;
+	 * - more fractional digits than the token has are rejected rather than
+	 *   silently truncated, which would drop value the caller did not mean to.
+	 */
 	static fromDecimal(value: string | number, decimals: number): TokenAmount {
 		const s = String(value).trim();
-		if (s === '' || s === '-') return new TokenAmount(0n, decimals);
+		if (s === '' || s === '-' || s === '.' || s === '-.') {
+			throw new Error(`TokenAmount.fromDecimal: an amount is required, got "${s}"`);
+		}
 		if (!/^-?\d*\.?\d*$/.test(s)) {
 			throw new Error(`TokenAmount.fromDecimal: invalid number "${s}"`);
 		}
-		const negative = s.startsWith('-');
-		const abs = negative ? s.slice(1) : s;
-		const [intPart = '0', fracPart = ''] = abs.split('.');
-		const fracPadded = (fracPart + '0'.repeat(decimals)).slice(0, decimals);
+		if (s.startsWith('-')) {
+			throw new Error(`TokenAmount.fromDecimal: negative amounts are not supported, got "${s}"`);
+		}
+		const [intPart = '0', fracPart = ''] = s.split('.');
+		if (fracPart.length > decimals) {
+			throw new Error(
+				`TokenAmount.fromDecimal: "${s}" has ${fracPart.length} fractional digits but the token only supports ${decimals} — round the value before passing it in`
+			);
+		}
+		const fracPadded = fracPart + '0'.repeat(decimals - fracPart.length);
 		const combined = `${intPart}${fracPadded}`.replace(/^0+(?=\d)/, '');
-		const raw = BigInt(combined === '' ? '0' : combined);
-		return new TokenAmount(negative ? -raw : raw, decimals);
+		return new TokenAmount(BigInt(combined === '' ? '0' : combined), decimals);
 	}
 
 	/** Render as a decimal string. Trailing zeros are kept (no implicit trim). */
